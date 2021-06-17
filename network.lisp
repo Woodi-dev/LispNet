@@ -32,25 +32,31 @@
            (loop for output in (network-outputs network)
                  collect (make-instance 'parameter
                                         :element-type (element-type output)
-                                        :shape (array-shape output))))
+										:shape (array-shape output))))
+
+		 (lossfunc  (loop for output in (network-outputs network)
+                  for output-parameter in output-parameters
+                  collect		 
+                  (lazy #'- output output-parameter)))	   
+		 (err (list (lazy-reduce #'+ (first lossfunc))))
+		 
          (gradient
            (differentiator
             (network-outputs network)
-            (loop for output in (network-outputs network)
-                  for output-parameter in output-parameters
-                  collect
-                  (lazy #'- output output-parameter))))
+			lossfunc))
          (training-network
            (apply #'make-network
-                  (loop for trainable-parameter in trainable-parameters
+                 (nconc (loop for trainable-parameter in trainable-parameters
                         collect
                         (lazy #'- trainable-parameter
                               (lazy #'* learning-rate
-                                    (funcall gradient trainable-parameter))))))
+                                    (funcall gradient trainable-parameter)))) err)))
          (normal-network
            (apply #'make-network
                   trainable-parameters))
-         (n nil))
+         (n nil)
+		 (losses '())
+		 )
     ;; Determine the training data size.
     (dolist (data output-training-data)
       (if (null n)
@@ -91,7 +97,7 @@
             (let ((new-values
                     (multiple-value-list
                      (apply #'call-network training-network (reverse args)))))
-
+			(push (compute(first(last(first new-values)))) losses)
               (loop for i from 0 to (- (length trainable-parameters) 1) do
                     (setf (trainable-parameter-value (nth i trainable-parameters)) (nth i (nth 0 new-values))
 
@@ -99,6 +105,8 @@
             )
           
           )
+		  (format t "Loss: ~S~%" (/ (reduce #'+ losses) (length losses)))
+
     
     ;; Return the trained network.
     network))

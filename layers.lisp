@@ -39,7 +39,7 @@
                   m)))|# 
 
          )
-		;; (lazy-slices (lazy-flatten weights) (range 0 10)) ;;this simple pass works for forward/backward pass
+		 ;;(lazy-slices (lazy-flatten weights) (range 0 10)) ;;this simple pass works for forward/backward pass
          (lazy-reduce
            #'+
            (lazy #'*

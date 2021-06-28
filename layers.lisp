@@ -32,19 +32,21 @@
             (lazy #'/
                   (make-random-array (list n m) :element-type (element-type input))
                   (* m n))))
-         #|(bias
+         (bias
            (make-trainable-parameter
             (lazy #'/
                   (make-random-array m :element-type (element-type input))
-                  m)))|# 
+                  m))) 
 
          )
-		 ;;(lazy-slices (lazy-flatten weights) (range 0 10)) ;;this simple pass works for forward/backward pass
+       ;;  (lazy #'+ bias (lazy-slices (lazy-flatten weights) (range 0 10)));;this simple test works for forward/backward pass
+					
+				 
          (lazy-reduce
            #'+
            (lazy #'*
                  weights
-                 (lazy-reshape (lazy-flatten input) (transform n to n 0)))) 
+                 (lazy-reshape (lazy-flatten input) (transform n to n 0))))  
 		  
     
     )

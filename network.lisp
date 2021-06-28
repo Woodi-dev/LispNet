@@ -32,13 +32,13 @@
            (loop for output in (network-outputs network)
                  collect (make-instance 'parameter
                                         :element-type (element-type output)
-										:shape (array-shape output))))
+				        :shape (array-shape output))))
 
-		 (lossfunc  (loop for output in (network-outputs network)
+         (lossfunc  (loop for output in (network-outputs network)
                   for output-parameter in output-parameters
                   collect		 
                   (lazy #'- output output-parameter)))	   
-		 (err (list (lazy-reduce #'+ (first lossfunc))))
+         (err (list (lazy-reduce #'+  (lazy #'expt (first lossfunc) 2)) ))
 		 
          (gradient
            (differentiator
@@ -55,8 +55,9 @@
            (apply #'make-network
                   trainable-parameters))
          (n nil)
-		 (losses '())
-		 )
+	 (losses '())
+         (updated-trainable-parameters (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~))))
+         )    
     ;; Determine the training data size.
     (dolist (data output-training-data)
       (if (null n)
@@ -66,11 +67,8 @@
       (unless (symbolp parameter)
         (assert (= n (range-size (first (shape-ranges (array-shape data))))))))
     ;; Iterate over the training data.
-    
+
     (loop for index below n do
-          (when (and (plusp index)
-                     (zerop (mod index 100)))
-            (format t "Processed ~D slices of training data~%" index))
           ;; Assemble the arguments.
           (let ((args '()))
             ;; Inputs.
@@ -94,33 +92,43 @@
                     
             ;; Update all trainable parameters.
             
-            (let ((new-values
-                    (multiple-value-list
-                     (apply #'call-network training-network (reverse args)))))
-			(push (compute(first(last(first new-values)))) losses)
-              (loop for i from 0 to (- (length trainable-parameters) 1) do
-                    (setf (trainable-parameter-value (nth i trainable-parameters)) (nth i (nth 0 new-values))
-
-                          )))
+            (let* ((net-out-values
+                    (first (multiple-value-list
+                            (apply #'call-network training-network (reverse args)))))
+                   (loss-out (compute(first(last net-out-values))))
+                   (new-trainable-parameters (butlast net-out-values 1))
+                   )
+              (loop for i below (list-length new-trainable-parameters) do
+                    (setf (nth i updated-trainable-parameters) (lazy #'+ (nth i new-trainable-parameters)
+                                                                     (nth i updated-trainable-parameters))))
+              (push loss-out losses))
             )
           
           )
-		  (format t "Loss: ~S~%" (/ (reduce #'+ losses) (length losses)))
+          
+    ;; Average new weights 
+    (loop for i below (length trainable-parameters) do
+          (setf (trainable-parameter-value (nth i trainable-parameters)) (lazy #'/ (nth i updated-trainable-parameters) n)
 
-    
-    ;; Return the trained network.
-    network))
+                ))
+
+      
+    ;; Return the trained network and batch loss.
+   (values network (/ (reduce #'+ losses) (length losses)) )))
 	
 	
-(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100))
+(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (learning-rate 0.001))
    (let ((input-data-length (array-dimension input-data 0))
 	 (label-data-length (array-dimension label-data 0))
+         
 	)
     (assert (= input-data-length label-data-length))
     (format t "Train on ~d samples~%" input-data-length)
     (loop for epoch from 1 to epochs do
     (format t "Epoch ~d/~d~%" epoch epochs)
-
+    (let ((epoch-train-loss 0)
+          (num-batches 0)
+          )
     (loop for offset below input-data-length by batch-size do
           (let* ((batch-range (range offset (+ offset batch-size)))
                  (batch-data (lazy-slices input-data batch-range))
@@ -130,10 +138,18 @@
                  (batch-output (compute (lazy-collapse batch-labels)))
                  )
 			
+            (multiple-value-bind (trained-net batch-loss)
             (train network (list batch-output)
-                   :learning-rate 0.02
-                   input batch-input) 
+                   :learning-rate learning-rate
+                   input batch-input)
+              (incf epoch-train-loss batch-loss)
+              (incf num-batches 1)
+
+              ) 
             ))
+      (format t "Loss: ~S ~%" (/ epoch-train-loss num-batches))
+
+     )
      )
           )
 	network

@@ -76,7 +76,7 @@
 	  (let* ((input-data
                  (compute (lazy #'/ *train-images* 255.0)))
 		     (label-data
-                   (compute
+                   (compute 
                     (lazy-collapse
                      (lazy 'coerce
                            (lazy (lambda (n i) (if (= n i) 1.0 0.0))
@@ -84,10 +84,11 @@
                                  #(0 1 2 3 4 5 6 7 8 9))
 						'single-float))))								 
 			)
-    (fit network input input-data label-data :epochs 10 :batch-size 100))
+    (fit network input input-data label-data  :epochs 10 :batch-size 10 :learning-rate 0.01))
     (check-test-data network 0)))
 
 (main)
+
 
 ;;(print (main))
 

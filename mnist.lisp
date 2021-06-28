@@ -6,6 +6,7 @@
    #:petalisp
    #:lispnet.layers
    #:lispnet.network
+   #:lispnet.loss
   )
   (:export
 
@@ -44,10 +45,12 @@
 
     (values
      (make-network
-      (fully-connected
-       input
-       (~ 0 10))
-      )
+	  ;;(softmax
+       (fully-connected
+        input
+        (~ 0 10))
+      ;; )
+	 )
      input))
 
   )
@@ -74,17 +77,17 @@
       (make-test-network)
 	  ;;pre-processing
 	  (let* ((input-data
-                 (compute (lazy #'/ *train-images* 255.0)))
+                 (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 1)))) ;;only learn first sample to test overfitting
 		     (label-data
-                   (compute 
+                   (compute (lazy-slices
                     (lazy-collapse
                      (lazy 'coerce
                            (lazy (lambda (n i) (if (= n i) 1.0 0.0))
                                  (lazy-reshape *train-labels* (transform i to i 0))
                                  #(0 1 2 3 4 5 6 7 8 9))
-						'single-float))))								 
+						'single-float))(range 0 1)) ))								 
 			)
-    (fit network input input-data label-data  :epochs 10 :batch-size 10 :learning-rate 0.01))
+    (fit network input input-data label-data  :epochs 100 :batch-size 1 :learning-rate 0.1 :loss #'mse))
     (check-test-data network 0)))
 
 (main)

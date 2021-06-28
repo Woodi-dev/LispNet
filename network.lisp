@@ -7,6 +7,7 @@
    #:lispnet.layers
    #:lispnet.initializers
    #:lispnet.trainable-parameter
+   #:lispnet.loss
   )
   (:export
    #:train
@@ -25,7 +26,8 @@
 
 (defun train (network output-training-data
               &rest training-data-plist
-              &key learning-rate &allow-other-keys)
+              &key learning-rate loss  &allow-other-keys
+			  )
   (let* ((trainable-parameters
            (remove-if-not #'trainable-parameter-p (network-parameters network)))
          (output-parameters
@@ -37,23 +39,20 @@
          (lossfunc  (loop for output in (network-outputs network)
                   for output-parameter in output-parameters
                   collect		 
-                  (lazy #'- output output-parameter)))	   
-         (err (list (lazy-reduce #'+  (lazy #'expt (first lossfunc) 2)) ))
+                  (funcall loss output-parameter output )))
+		 (loss-network 
+		            (apply #'make-network lossfunc))
+		 (loss-network-gradient (list(lazy #'/ (first (network-outputs loss-network)) (first (network-outputs loss-network)))))
+		 (gradient (differentiator (network-outputs loss-network) loss-network-gradient))
+
 		 
-         (gradient
-           (differentiator
-            (network-outputs network)
-			lossfunc))
          (training-network
            (apply #'make-network
                  (nconc (loop for trainable-parameter in trainable-parameters
                         collect
                         (lazy #'- trainable-parameter
                               (lazy #'* learning-rate
-                                    (funcall gradient trainable-parameter)))) err)))
-         (normal-network
-           (apply #'make-network
-                  trainable-parameters))
+                                    (funcall gradient trainable-parameter)))) lossfunc)))
          (n nil)
 	 (losses '())
          (updated-trainable-parameters (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~))))
@@ -117,7 +116,7 @@
    (values network (/ (reduce #'+ losses) (length losses)) )))
 	
 	
-(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (learning-rate 0.001))
+(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (learning-rate 0.001) (loss #'mse))
    (let ((input-data-length (array-dimension input-data 0))
 	 (label-data-length (array-dimension label-data 0))
          
@@ -140,7 +139,7 @@
 			
             (multiple-value-bind (trained-net batch-loss)
             (train network (list batch-output)
-                   :learning-rate learning-rate
+                   :learning-rate learning-rate :loss loss
                    input batch-input)
               (incf epoch-train-loss batch-loss)
               (incf num-batches 1)

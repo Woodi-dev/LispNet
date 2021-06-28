@@ -20,8 +20,10 @@
      (:static-file "train-images.npy")
      (:static-file "train-labels.npy")))
    (:file "initializers")
+   (:file "loss")
    (:file "layers")
    (:file "network")
    (:file "mnist")
+
 
    ))

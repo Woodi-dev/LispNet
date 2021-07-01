@@ -11,10 +11,14 @@
   (:export
    #:softmax
    #:relu
+   #:sigmoid
    #:fully-connected
    ))
 
 (in-package #:lispnet.layers)
+
+(defun sigmoid(input)
+(lazy #'/ 1.0 (lazy #'+ 1.0 (lazy #'exp (lazy #'* -1.0 input)))))
 
 
 (defun softmax (input)

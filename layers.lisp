@@ -45,7 +45,7 @@
            #'+
            (lazy #'*
                  weights
-                 (lazy-reshape (lazy-flatten input) (transform n to n 0))))  ;;lazy #'* with column vector throws unexpected error
+                 (lazy-reshape (lazy-flatten input) (transform n to n 0)))) 
 		  
     
     )

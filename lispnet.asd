@@ -21,6 +21,7 @@
      (:static-file "train-labels.npy")))
    (:file "initializers")
    (:file "loss")
+   (:file "optimizer")
    (:file "layers")
    (:file "network")
    (:file "mnist")

@@ -8,6 +8,7 @@
    #:lispnet.initializers
    #:lispnet.trainable-parameter
    #:lispnet.loss
+   #:lispnet.optimizer
   )
   (:export
    #:train
@@ -26,7 +27,7 @@
 
 (defun train (network output-training-data
               &rest training-data-plist
-              &key learning-rate loss  &allow-other-keys
+              &key loss optimizer &allow-other-keys
 			  )
   (let* ((trainable-parameters
            (remove-if-not #'trainable-parameter-p (network-parameters network)))
@@ -50,12 +51,10 @@
            (apply #'make-network
                  (nconc (loop for trainable-parameter in trainable-parameters
                         collect
-                        (lazy #'- trainable-parameter
-                              (lazy #'* learning-rate
-                                    (funcall gradient trainable-parameter)))) lossfunc)))
+                              (funcall gradient trainable-parameter)) lossfunc)))
          (n nil)
 	 (losses '())
-         (updated-trainable-parameters (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~))))
+         (gradients (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~))))
          )    
     ;; Determine the training data size.
     (dolist (data output-training-data)
@@ -66,7 +65,6 @@
       (unless (symbolp parameter)
         (assert (= n (range-size (first (shape-ranges (array-shape data))))))))
     ;; Iterate over the training data.
-
     (loop for index below n do
           ;; Assemble the arguments.
           (let ((args '()))
@@ -89,34 +87,40 @@
               (push trainable-parameter args)
               (push (trainable-parameter-value trainable-parameter) args))
                     
-            ;; Update all trainable parameters.
+            ;; Forward + backward pass
             
             (let* ((net-out-values
                     (first (multiple-value-list
                             (apply #'call-network training-network (reverse args)))))
                    (loss-out (compute(first(last net-out-values))))
-                   (new-trainable-parameters (butlast net-out-values 1))
+                   (new-gradients (butlast net-out-values 1))
                    )
-              (loop for i below (list-length new-trainable-parameters) do
-                    (setf (nth i updated-trainable-parameters) (lazy #'+ (nth i new-trainable-parameters)
-                                                                     (nth i updated-trainable-parameters))))
+              (loop for i below (list-length new-gradients) do
+                    (setf (nth i gradients) (lazy #'+ (nth i new-gradients)
+                        (nth i gradients))))
+
               (push loss-out losses))
             )
           
           )
-          
-    ;; Average new weights 
-    (loop for i below (length trainable-parameters) do
-          (setf (trainable-parameter-value (nth i trainable-parameters)) (lazy #'/ (nth i updated-trainable-parameters) n)
 
-                ))
+   
+
+    ;;Average gradients
+    (loop for i below (length gradients) do
+          (setf (nth i gradients) (lazy #'/ (nth i gradients) n)
+
+      ))
+	;;Update weights  
+    (update-weights optimizer :weights trainable-parameters :gradient gradients)
+
 
       
     ;; Return the trained network and batch loss.
-   (values network (/ (reduce #'+ losses) (length losses)) )))
+  (values network (/ (reduce #'+ losses) (length losses)) )))
+
 	
-	
-(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (learning-rate 0.001) (loss #'mse))
+(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (loss #'mse) optimizer)
    (let ((input-data-length (array-dimension input-data 0))
 	 (label-data-length (array-dimension label-data 0))
          
@@ -139,7 +143,7 @@
 			
             (multiple-value-bind (trained-net batch-loss)
             (train network (list batch-output)
-                   :learning-rate learning-rate :loss loss
+                   :loss loss :optimizer optimizer
                    input batch-input)
               (incf epoch-train-loss batch-loss)
               (incf num-batches 1)

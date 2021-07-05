@@ -46,9 +46,13 @@
 
     (values
      (make-network
-	  (sigmoid
-       (fully-connected
-        input
+      (softmax
+       (fcn
+        (conv-2d
+         (lazy-reshape input (~ 1 ~ 28 ~ 28))
+         :stencil '((0 0) (1 0) (0 1) (-1 0) (0 -1))
+         :n-filters 3)
+        
         (~ 0 10))
        )
 	 )
@@ -87,7 +91,7 @@
                                  (lazy-reshape *train-labels* (transform i to i 0))
                                  #(0 1 2 3 4 5 6 7 8 9))
                            'single-float))(range 0 1)) ))
-                 (optimizer (make-sgd :learning-rate 1 :network network :momentum 0.2))
+                 (optimizer (make-sgd :learning-rate 0.5 :network network :momentum 0.4))
                  )
        
     (fit network input input-data label-data  :epochs 100 :batch-size 1 :loss #'binary-cross-entropy :optimizer optimizer))

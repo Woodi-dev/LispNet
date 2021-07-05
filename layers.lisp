@@ -58,7 +58,7 @@
                   m))) 
 
          )
-        ;;(lazy #'+ bias (lazy-slices (lazy-flatten weights) (range 0 10)));;this simple test works for forward/backward pass					
+        ;;(lazy #'+ bias (lazy-slices (lazy-flatten input) (range 0 10)));;this simple test works for forward/backward pass					
 		;;comment out following equation and use the line above to test the forward and backward pass	 
          (lazy-reduce
            #'+
@@ -128,7 +128,7 @@
 						  for offset-index from 0
 						  collect
 						  (lazy #'*
-								(lazy-reshape (lazy-slice (lazy-slice filters filter-index) offset-index) (transform A to A 0 0))9
+								(lazy-reshape (lazy-slice (lazy-slice filters filter-index) offset-index) (transform A to A 0 0))
 								(lazy-reshape array
 									(make-transformation
 									:offsets

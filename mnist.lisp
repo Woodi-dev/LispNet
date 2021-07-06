@@ -81,9 +81,9 @@
   (multiple-value-bind (network input)
       (make-test-network)
 	  ;;pre-processing
-	  (let* ((input-data
+	  (let* ((train-input-data
                  (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 1)))) ;;only learn first sample to test overfitting
-		 (label-data
+		    (train-label-data
                    (compute (lazy-slices
                     (lazy-collapse
                      (lazy 'coerce
@@ -91,10 +91,21 @@
                                  (lazy-reshape *train-labels* (transform i to i 0))
                                  #(0 1 2 3 4 5 6 7 8 9))
                            'single-float))(range 0 1)) ))
-                 (optimizer (make-adam :learning-rate 0.1 :network network))
-                 )
+						   
+			(val-input-data
+                 (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 5))))  ;;lets validate 5 examples
+		    (val-label-data
+                   (compute (lazy-slices
+                    (lazy-collapse
+                     (lazy 'coerce
+                           (lazy (lambda (n i) (if (= n i) 1.0 0.0))
+                                 (lazy-reshape *test-labels* (transform i to i 0))
+                                 #(0 1 2 3 4 5 6 7 8 9))
+                           'single-float))(range 0 5))))
+            (optimizer (make-adam :learning-rate 0.1 :network network))
+            )
        
-    (fit network input input-data label-data  :epochs 100 :batch-size 1 :loss #'binary-cross-entropy :optimizer optimizer))
+    (fit network input train-input-data train-label-data val-input-data val-label-data :epochs 100 :batch-size 100 :loss #'binary-cross-entropy :optimizer optimizer))
     (check-test-data network 0)))
 
 (main)

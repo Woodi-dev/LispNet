@@ -69,13 +69,13 @@
     )
   
   )
-  
- (defun conv-2d (array &key (stencil '()) (n-filters 1))
-  (let* ((rank (rank array))
+ ;;Conv2D input_dim:[channel,height,width]
+ (defun conv-2d (input &key (stencil '()) (n-filters 1))
+  (let* ((rank (rank input))
          (n-weights (length stencil))
          (lower-bounds (make-array rank :initial-element 0))
          (upper-bounds (make-array rank :initial-element 0))
-		 (n-filters-input (first(shape-dimensions(array-shape array))))
+		 (n-filters-input (first(shape-dimensions(array-shape input))))
          (d nil))
 		 
     ;; Determine the dimension of the stencil.
@@ -94,7 +94,7 @@
             (~l 
                (loop for lb across lower-bounds
                      for ub across upper-bounds
-                     for range in (shape-ranges (array-shape array))
+                     for range in (shape-ranges (array-shape input))
 					 for index from 0
                      collect
 					 (if (= index 0) (range 0 n-filters)
@@ -112,7 +112,7 @@
               (list n-filters
 			        n-weights      
                     n-filters-input)
-              :element-type (element-type array)))))
+              :element-type (element-type input)))))
 
 									
       ;; Compute the result.
@@ -128,7 +128,7 @@
 						  collect
 						  (lazy #'*
 								(lazy-reshape (lazy-slice (lazy-slice filters filter-index) offset-index) (transform A to A 0 0))
-								(lazy-reshape array
+								(lazy-reshape input
 									(make-transformation
 									:offsets
 									(cons 0 (mapcar #'- offsets)))

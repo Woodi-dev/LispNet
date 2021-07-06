@@ -60,10 +60,10 @@
 		for gradient in gradients
 		for last-gradient in (last-gradients opt) do
         (setf (trainable-parameter-value weight)
-        	(lazy #'- (lazy #'- (trainable-parameter-value weight)
+        	(compute (lazy #'- (lazy #'- (trainable-parameter-value weight)
 					         (lazy #'* (learning-rate opt) gradient))
-				      (lazy #'* (momentum opt) last-gradient)))    				  
-		(setf last-gradient (lazy #'* (learning-rate opt) gradient))
+				      (lazy #'* (momentum opt) last-gradient))))    				  
+		(setf last-gradient (compute(lazy #'* (learning-rate opt) gradient)))
   )
 
  )
@@ -108,14 +108,14 @@
 		for gradient in gradients
 		for m in (m-list opt) 
 		for v in (v-list opt) do
-		(setf m (lazy #'+ (lazy #'* (beta-1 opt) m) (lazy #'* (lazy #'- 1.0 (beta-1 opt)) gradient)))
-		(setf v (lazy #'+ (lazy #'* (beta-2 opt) v) (lazy #'* (lazy #'- 1.0 (beta-2 opt)) (lazy #'* gradient gradient))))
+		(setf m (compute(lazy #'+ (lazy #'* (beta-1 opt) m) (lazy #'* (lazy #'- 1.0 (beta-1 opt)) gradient))))
+		(setf v (compute(lazy #'+ (lazy #'* (beta-2 opt) v) (lazy #'* (lazy #'- 1.0 (beta-2 opt)) (lazy #'* gradient gradient)))))
 		(let ((m-bias-corrected (lazy #'/ m (lazy #'- 1.0 (lazy #'expt (beta-1 opt) (iterations opt)))))
 			  (v-bias-corrected (lazy #'/ v (lazy #'- 1.0 (lazy #'expt (beta-2 opt) (iterations opt))))))
 				(setf (trainable-parameter-value weight)
-				(lazy #'- (trainable-parameter-value weight)
+				(compute(lazy #'- (trainable-parameter-value weight)
 					      (lazy #'* (learning-rate opt) 
-						  (lazy #'/ m-bias-corrected (lazy #'+ (lazy #'sqrt v-bias-corrected) (epsilon opt)))))						
+						  (lazy #'/ m-bias-corrected (lazy #'+ (lazy #'sqrt v-bias-corrected) (epsilon opt))))))						
 				)
 		)
 	)

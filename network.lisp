@@ -11,7 +11,7 @@
    #:lispnet.optimizer
   )
   (:export
-   #:train
+   #:train-test
    #:predict
    #:fit
    ))
@@ -20,14 +20,17 @@
 
 
 
+
+	  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;; Training
+;;; Training - Validation
 
 
-(defun train (network output-training-data
+(defun train-test (network output-training-data
               &rest training-data-plist
-              &key loss optimizer &allow-other-keys
+              &key loss optimizer (mode "train") &allow-other-keys
 			  )
   (let* ((trainable-parameters
            (remove-if-not #'trainable-parameter-p (network-parameters network)))
@@ -53,7 +56,7 @@
                         collect
                               (funcall gradient trainable-parameter)) lossfunc)))
          (n nil)
-	 (losses '())
+	     (losses '())
          (gradients (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~))))
          )    
     ;; Determine the training data size.
@@ -88,7 +91,8 @@
               (push (trainable-parameter-value trainable-parameter) args))
                     
             ;; Forward + backward pass
-            
+			(if (string-equal mode "train")
+			;;train
             (let* ((net-out-values
                     (first (multiple-value-list
                             (apply #'call-network training-network (reverse args)))))
@@ -99,13 +103,23 @@
                     (setf (nth i gradients) (lazy #'+ (nth i new-gradients)
                         (nth i gradients))))
 
-              (push loss-out losses))
+             (push loss-out losses))
+			 ;;test
+			(let* ((net-out-values
+                    (first (multiple-value-list
+                            (apply #'call-network loss-network (reverse args)))))
+                   (loss-out (compute(first net-out-values)))
+                   )
+				   (push loss-out losses))
+			 )
+			 
+			  
             )
           
           )
 
    
-
+	(when (string-equal mode "train")
     ;;Average gradients
     (loop for i below (length gradients) do
           (setf (nth i gradients) (lazy #'/ (nth i gradients) n)
@@ -113,44 +127,66 @@
       ))
 	;;Update weights  
     (update-weights optimizer :weights trainable-parameters :gradients gradients)
-
+    )
 
       
     ;; Return the trained network and batch loss.
   (values network (/ (reduce #'+ losses) (length losses)) )))
 
 	
-(defun fit(network input input-data label-data &key (epochs 10) (batch-size 100) (loss #'mse) optimizer)
-   (let ((input-data-length (array-dimension input-data 0))
-	 (label-data-length (array-dimension label-data 0))
-         
+(defun fit(network input train-input-data train-label-data val-input-data val-label-data &key (epochs 10) (batch-size 100) (loss #'mse) optimizer)
+   (let ((train-input-data-length (array-dimension train-input-data 0))
+		 (train-label-data-length (array-dimension train-label-data 0))
+		 (val-input-data-length (array-dimension val-input-data 0))
+		 (val-label-data-length (array-dimension val-label-data 0))	 
 	)
-    (assert (= input-data-length label-data-length))
-    (format t "Train on ~d samples~%" input-data-length)
+    (assert (= train-input-data-length train-label-data-length))
+	(assert (= val-input-data-length val-label-data-length))
+    (format t "Train on ~d samples~%" train-input-data-length)
     (loop for epoch from 1 to epochs do
     (format t "Epoch ~d/~d~%" epoch epochs)
-    (let ((epoch-train-loss 0)
-          (num-batches 0)
+    (let ((batch-train-losses '())
+		  (batch-val-losses '())
+		  (time-start (get-internal-real-time))
           )
-    (loop for offset below input-data-length by batch-size do
-          (let* ((batch-range (range offset (+ offset batch-size)))
-                 (batch-data (lazy-slices input-data batch-range))
-                 (batch-labels (lazy-slices label-data batch-range))
+    ;;Training
+    (loop for offset below train-input-data-length by batch-size do
+          (let* ((batch-range (range offset (min train-input-data-length (+ offset batch-size))))
+                 (batch-data (lazy-slices train-input-data batch-range))
+                 (batch-labels (lazy-slices train-label-data batch-range))
 
                  (batch-input (compute (lazy-collapse batch-data)))
                  (batch-output (compute (lazy-collapse batch-labels)))
                  )
 			
             (multiple-value-bind (trained-net batch-loss)
-            (train network (list batch-output)
-                   :loss loss :optimizer optimizer
+            (train-test network (list batch-output)
+                   :loss loss :optimizer optimizer :mode "train"
                    input batch-input)
-              (incf epoch-train-loss batch-loss)
-              (incf num-batches 1)
-
+              (setq batch-train-losses (append batch-train-losses (list batch-loss)))
               ) 
             ))
-      (format t "Loss: ~S ~%" (/ epoch-train-loss num-batches))
+	;;Validation	
+	(loop for offset below val-input-data-length by batch-size do
+          (let* ((batch-range (range offset (min val-input-data-length (+ offset batch-size))))
+                 (batch-data (lazy-slices val-input-data batch-range))
+                 (batch-labels (lazy-slices val-label-data batch-range))
+
+                 (batch-input (compute (lazy-collapse batch-data)))
+                 (batch-output (compute (lazy-collapse batch-labels)))
+                 )
+			
+            (multiple-value-bind (net batch-loss)
+            (train-test network (list batch-output)
+                   :loss loss :optimizer optimizer :mode "test"
+                   input batch-input)
+                (setq batch-val-losses (append  batch-val-losses (list batch-loss)))
+              ) 
+            ))	
+      (format t "~Ss train_loss: ~S - val_loss: ~S ~%"  (/ (- (get-internal-real-time) time-start) 1000.0)
+													(/ (reduce #'+ batch-train-losses) (length batch-train-losses))
+													(/ (reduce #'+ batch-val-losses) (length batch-val-losses))
+	  )
 
      )
      )

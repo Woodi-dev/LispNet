@@ -33,9 +33,8 @@
 ))
 
 (defun sigmoid(input)
-(lazy #'/ 1.0 (lazy #'+ 1.0 (lazy #'exp (lazy #'* -1.0 input)))))
-
-
+	(lazy #'/ (lazy #'1+ (lazy #'exp (lazy #'- input)))))
+  
 (defun softmax (input)
   (let ((totals (lazy #'exp input)))
     (lazy #'/ totals (lazy-allreduce #'+ totals))))
@@ -64,7 +63,7 @@
            #'+
            (lazy #'*
                  weights
-                 (lazy-reshape (lazy-flatten input) (transform n to n 0)))) 
+                 (lazy-reshape (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))) 
 		  
     
     )

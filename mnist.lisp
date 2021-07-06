@@ -91,7 +91,7 @@
                                  (lazy-reshape *train-labels* (transform i to i 0))
                                  #(0 1 2 3 4 5 6 7 8 9))
                            'single-float))(range 0 1)) ))
-                 (optimizer (make-sgd :learning-rate 0.5 :network network :momentum 0.4))
+                 (optimizer (make-adam :learning-rate 0.1 :network network))
                  )
        
     (fit network input input-data label-data  :epochs 100 :batch-size 1 :loss #'binary-cross-entropy :optimizer optimizer))
@@ -100,10 +100,3 @@
 (main)
 
 
-;;(print (main))
-
-;;(check-test-data (main) 0)
-
-
-
-;;multiple-value-bind (net inp) (main) (check-test-data net 0))

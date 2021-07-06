@@ -112,7 +112,7 @@
 
       ))
 	;;Update weights  
-    (update-weights optimizer :weights trainable-parameters :gradient gradients)
+    (update-weights optimizer :weights trainable-parameters :gradients gradients)
 
 
       

@@ -50,8 +50,11 @@
        (fcn
         (conv-2d
          (lazy-reshape input (~ 1 ~ 28 ~ 28))
-         :stencil '((0 0) (1 0) (0 1) (-1 0) (0 -1))
-         :n-filters 3)
+         :n-filters 3
+		 :kernel-size 3
+		 :strides '(2 2)
+		 ;;:stencil '((0 0) (1 0) (0 1) (-1 0) (0 -1))
+		 :padding "same")
         
         (~ 0 10))
        )
@@ -93,7 +96,7 @@
                            'single-float))(range 0 1)) ))
 						   
 			(val-input-data
-                 (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 5))))  ;;lets validate 5 examples
+                 (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 5))))  ;;lets validate 5 samples
 		    (val-label-data
                    (compute (lazy-slices
                     (lazy-collapse

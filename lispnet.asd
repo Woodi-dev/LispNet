@@ -13,6 +13,7 @@
   :components
   (
   (:file "trainable-parameter")
+  (:file "utils")
   (:module "mnist-data"
     :components
     ((:static-file "test-images.npy")

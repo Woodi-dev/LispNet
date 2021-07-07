@@ -7,6 +7,7 @@
    #:petalisp
    #:lispnet.initializers
    #:lispnet.trainable-parameter
+   #:lispnet.utils
    )
   (:export
    #:softmax
@@ -57,8 +58,8 @@
                   m))) 
 
          )
-        ;;(lazy #'+ bias (lazy-slices (lazy-flatten input) (range 0 10)));;this simple test works for forward/backward pass					
-		;;comment out following equation and use the line above to test the forward and backward pass	 
+        ;;(lazy #'+ bias (lazy-slices (lazy-flatten input) (range 0 10)));; this simple test works for forward/backward pass					
+		;; comment out following equation and use the line above to test the forward and backward pass	 
          (lazy-reduce
            #'+
            (lazy #'*
@@ -69,54 +70,62 @@
     )
   
   )
- ;;Conv2D input_dim:[channel,height,width]
- (defun conv-2d (input &key (stencil '()) (n-filters 1))
+ ;; Conv2D input_dim:[channel,height,width]
+ (defun conv-2d (input &key (n-filters 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()))
   (let* ((rank (rank input))
          (n-weights (length stencil))
-         (lower-bounds (make-array rank :initial-element 0))
-         (upper-bounds (make-array rank :initial-element 0))
+         (lower-bounds (make-array 2 :initial-element 0))
+         (upper-bounds (make-array 2 :initial-element 0))
 		 (n-filters-input (first(shape-dimensions(array-shape input))))
-         (d nil))
-		 
-    ;; Determine the dimension of the stencil.
+		 (input-pad input)
+         )
+	;; Generate stencil if not set
+	(when (= (length stencil) 0)
+	(setq stencil (make-2d-kernel kernel-size))
+	(setf n-weights (length stencil)))
+		
     (loop for offsets in stencil do
-          (if (null d)
-              (setf d (length offsets))
-              (assert (= (length offsets) d))))
+              (assert (= (length offsets) 2)))
+	
     ;; Determine the bounding box of the stencil.
     (loop for offsets in stencil do
           (loop for offset in offsets
-                for index from (- rank d) do
+                for index from 0 do
                 (minf (aref lower-bounds index) offset)
                 (maxf (aref upper-bounds index) offset)))
+
+	;; Padding
+	(when (string-equal padding "same")
+	(setq input-pad (pad input :paddings (append '((0 0)) (loop for lb across lower-bounds
+								 for ub across upper-bounds collect
+								 (list (abs lb) ub))))))
+
+	
     ;; Use the bounding box to compute the shape of the result.
-    (let* ((result-shape
+    (let* ((interior-shape
             (~l 
                (loop for lb across lower-bounds
                      for ub across upper-bounds
-                     for range in (shape-ranges (array-shape input))
-					 for index from 0
+                     for range in (cdr(shape-ranges (array-shape input-pad)))				
                      collect
-					 (if (= index 0) (range 0 n-filters)
                      (if (and (integerp lb)
                               (integerp ub))
                          (let ((lo (- (range-start range) lb))
                                (hi (- (range-end range) ub)))
                            (assert (< lo hi))
                            (range lo hi))
-                         range)))))
-		  (interior-shape (~l (cdr(shape-ranges result-shape))))
+                         range))))
           (filters
             (make-trainable-parameter
              (make-random-array
               (list n-filters
 			        n-weights      
                     n-filters-input)
-              :element-type (element-type input)))))
-
-									
+              :element-type (element-type input-pad)))))
+				
       ;; Compute the result.
 	  (lazy-collapse
+	  (lazy-reshape
 	  (lazy-multi-stack 0
 	  (loop for filter-index below n-filters
 				collect 				
@@ -128,13 +137,13 @@
 						  collect
 						  (lazy #'*
 								(lazy-reshape (lazy-slice (lazy-slice filters filter-index) offset-index) (transform A to A 0 0))
-								(lazy-reshape input
+								(lazy-reshape input-pad
 									(make-transformation
 									:offsets
 									(cons 0 (mapcar #'- offsets)))
 									(~r (range n-filters-input) ~s interior-shape)
-									))))) (transform A B to 0 A B )))))
-																	
+									))))) (transform A B to 0 A B )))) 
+	    (~r (range n-filters) ~s (stride-shape interior-shape strides))))														
 		)))
 								
 

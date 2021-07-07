@@ -42,7 +42,7 @@
 
 (defun relu (input)
   (lazy #'max (coerce 0 (element-type input)) input))
-  
+
 (defun fcn (input output-shape)
   (let* ((m (shape-size output-shape))
          (n (total-size input))
@@ -55,7 +55,7 @@
            (make-trainable-parameter
             (lazy #'/
                   (make-random-array m :element-type (element-type input))
-                  m))) 
+                  m)))
 
          )
         ;;(lazy #'+ bias (lazy-slices (lazy-flatten input) (range 0 10)));; this simple test works for forward/backward pass					
@@ -64,12 +64,16 @@
            #'+
            (lazy #'*
                  weights
-                 (lazy-reshape (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))) 
+                  (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))
 		  
     
     )
   
   )
+
+
+
+
  ;; Conv2D input_dim:[channel,height,width]
  (defun conv-2d (input &key (n-filters 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()))
   (let* ((rank (rank input))

@@ -14,6 +14,8 @@
    #:train-test
    #:predict
    #:fit
+   #:network-weights
+   #:network-weights-size
    ))
 
 (in-package #:lispnet.network)
@@ -46,7 +48,7 @@
                   (funcall loss output-parameter output )))
 		 (loss-network 
 		            (apply #'make-network lossfunc))
-		 (loss-network-gradient (list(lazy #'/ (first (network-outputs loss-network)) (first (network-outputs loss-network)))))
+		 (loss-network-gradient (list (lazy-reshape 1.0 (~))))
 		 (gradient (differentiator (network-outputs loss-network) loss-network-gradient))
 
 		 
@@ -213,4 +215,13 @@
 
 
 
+(defun network-weights (network)
+  (remove-if-not #'trainable-parameter-p (network-parameters network))
+  )
 
+(defun network-weights-size (network)
+	(reduce #'+ (loop for weight in (network-weights network) collect
+		(shape-size(array-shape weight)))
+    ))
+ 
+  

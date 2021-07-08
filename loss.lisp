@@ -23,7 +23,7 @@
 (defun mae (y-true y-pred)  (lazy #'/ (lazy-allreduce #'+ (lazy #'abs (lazy #'- y-pred y-true) ))(shape-size (array-shape y-pred))))
 
 (defun binary-cross-entropy (y-true y-pred)
-(let ((y-pred-stable (clip y-pred 0.0000001 0.9999999)))
+(let ((y-pred-stable (clip y-pred 0.0000001 (- 1.0 0.0000001))))
  (lazy #'* -1.0 (lazy #'/  (lazy-allreduce #'+ (lazy #'+ (lazy #'* y-true (lazy #'log y-pred-stable)) 
 											           (lazy #'* (lazy #'- 1.0 y-true) (lazy #'log (lazy #'- 1.0 y-pred-stable)))
 			   )) (shape-size (array-shape y-pred)))))

@@ -15,6 +15,7 @@
    #:sigmoid
    #:fcn
    #:conv-2d
+   #:flatten
    ))
 
 (in-package #:lispnet.layers)
@@ -34,48 +35,62 @@
 ))
 
 (defun sigmoid(input)
-	(lazy #'/ (lazy #'1+ (lazy #'exp (lazy #'- input)))))
+	(lazy #'/ 1.0 (lazy #'+ 1.0 (lazy #'exp (lazy #'- input)))))
   
 (defun softmax (input)
-  (let ((totals (lazy #'exp input)))
+  (let* ((c (lazy-allreduce #'max input))
+		(totals (lazy #'exp (lazy #'- input c))))		
     (lazy #'/ totals (lazy-allreduce #'+ totals))))
 
 (defun relu (input)
   (lazy #'max (coerce 0 (element-type input)) input))
 
-(defun fcn (input output-shape)
-  (let* ((m (shape-size output-shape))
-         (n (total-size input))
+(defun fcn (input &key units (activation nil))
+  (let* ((n (total-size input))
          (weights
            (make-trainable-parameter
             (lazy #'/
-                  (make-random-array (list n m) :element-type (element-type input))
-                  (* m n))))
+                  (make-random-array (list units n) :element-type (element-type input))
+                  (* units n))))
          (bias
            (make-trainable-parameter
             (lazy #'/
-                  (make-random-array m :element-type (element-type input))
-                  m)))
+                  (make-random-array units :element-type (element-type input))
+                  units)))
 
          )
-        ;;(lazy #'+ bias (lazy-slices (lazy-flatten input) (range 0 10)));; this simple test works for forward/backward pass					
-		;; comment out following equation and use the line above to test the forward and backward pass	 
-         (lazy-reduce
+        
+    (lazy-reduce
            #'+
            (lazy #'*
-                 weights
-                  (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))
-		  
-    
-    )
+                 (lazy-reshape weights (transform A B to B A))
+                  (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))		
+    ;; comment out following equation and use the line above to test the forward and backward pass
+    #|(let* ((result
+			(lazy #'+ bias
+			(lazy-collapse
+			(lazy-multi-stack 0
+			(loop for i from 0 below units collect
+				(lazy-reshape
+					(lazy-reduce #'+                 
+                        (lazy #'*
+                              (lazy-slice weights i)
+                              input
+                              ))
+            (~ 1))))))))
+	  (if activation (funcall activation result)
+	   result)
+	  
+      )|#
   
-  )
+  ))
 
 
-
+(defun flatten (input)
+	(lazy-collapse (lazy-flatten input)))
 
  ;; Conv2D input_dim:[channel,height,width]
- (defun conv-2d (input &key (n-filters 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()))
+ (defun conv-2d (input &key (n-filters 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()) (activation nil))
   (let* ((rank (rank input))
          (n-weights (length stencil))
          (lower-bounds (make-array 2 :initial-element 0))
@@ -128,6 +143,7 @@
               :element-type (element-type input-pad)))))
 				
       ;; Compute the result.
+	  (let ((result
 	  (lazy-collapse
 	  (lazy-reshape
 	  (lazy-multi-stack 0
@@ -147,7 +163,9 @@
 									(cons 0 (mapcar #'- offsets)))
 									(~r (range n-filters-input) ~s interior-shape)
 									))))) (transform A B to 0 A B )))) 
-	    (~r (range n-filters) ~s (stride-shape interior-shape strides))))														
+	    (~r (range n-filters) ~s (stride-shape interior-shape strides))))))
+		(if activation (funcall activation result)
+		result))
 		)))
 								
 

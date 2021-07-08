@@ -65,7 +65,7 @@
            (lazy #'*
                  (lazy-reshape weights (transform A B to B A))
                   (lazy-reshape (lazy-flatten input ) (transform n to n 0) )))		
-    ;; comment out following equation and use the line above to test the forward and backward pass
+    ;; comment out equation above and use the code below to test the forward and backward pass
     #|(let* ((result
 			(lazy #'+ bias
 			(lazy-collapse

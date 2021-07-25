@@ -12,8 +12,11 @@
   :serial t
   :components
   (
-  (:file "trainable-parameter")
+  (:file "linear-algebra")
   (:file "utils")
+  (:file "packages")
+  (:file "model")
+  (:file "trainable-parameter")
   (:module "mnist-data"
     :components
     ((:static-file "test-images.npy")
@@ -21,11 +24,15 @@
      (:static-file "train-images.npy")
      (:static-file "train-labels.npy")))
    (:file "initializers")
+   (:file "layers/layer")
+   (:file "layers/activations")
+   (:file "layers/conv2d")
+   (:file "layers/dense")
+   (:file "layers/flatten")
    (:file "loss")
    (:file "optimizer")
-   (:file "layers")
-   (:file "network")
-   (:file "mnist")
+   (:file "examples/mnist")
+   
 
 
    ))

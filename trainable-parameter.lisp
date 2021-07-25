@@ -1,32 +1,26 @@
-
-(in-package :common-lisp-user)
-
-(defpackage #:lispnet.trainable-parameter
-  (:use
-   #:common-lisp
-   #:petalisp)
-  (:export
-   #:trainable-parameter
-   #:make-trainable-parameter
-   #:trainable-parameter-p
-   #:trainable-parameter-value
-   ))
-   
-(in-package #:lispnet.trainable-parameter)
+(in-package #:lispnet)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;; Trainable Parameters
-(defclass trainable-parameter (parameter)
-  ((%value :initarg :value :accessor trainable-parameter-value)))
+(defclass trainable-parameter ()
+  ((weights 
+    :accessor weights)
+   (weights-value	
+    :accessor weights-value)
+   (shape 
+    :accessor weights-shape
+	:initarg :shape
+	)))
 
-(defun make-trainable-parameter (initial-value)
-  (let ((value (lazy-array initial-value)))
+
+(defmethod initialize-instance :after ((parameter trainable-parameter) &rest initargs)
+  (setf (weights parameter)(make-unknown :shape (weights-shape parameter) :element-type 'single-float)))
+  
+(defun make-trainable-parameter (&key shape)
     (make-instance 'trainable-parameter
-                   :shape (array-shape initial-value)
-                   :element-type (upgraded-array-element-type (element-type value))
-                   :value value)))
+                   :shape shape))
 
 (declaim (inline trainable-parameter-p))
 (defun trainable-parameter-p (object)

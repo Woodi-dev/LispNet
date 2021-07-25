@@ -11,11 +11,26 @@
    #:stride-shape
    #:pad
    #:make-2d-kernel
+   #:argmax
+   #:lazy-multi-stack
+   #:minf
+   #:maxf
+   #:binary-decision
+   #:lazy-argmax
    ))
    
 (in-package #:lispnet.utils)
 
+(define-modify-macro minf (&rest numbers) min)
+(define-modify-macro maxf (&rest numbers) max)
+
+
+(defun lazy-multi-stack (axis arrays)
+  (apply #'lazy-stack axis arrays))
+  
+
 (defun range-to-list (ra) (list (range-start ra) (range-end ra) (range-step ra)))
+
 
 (defun stride-range (ra stride)
   (range (range-start ra) (range-end ra) (* (range-step ra) stride)))
@@ -27,7 +42,7 @@
             (stride-range ra stride))))
 
 (defun pad (array &key paddings (value 0.0))
-  (let ((ranges (shape-ranges (array-shape array)))
+  (let ((ranges (shape-ranges (lazy-array-shape array)))
         (new-ranges '()))
 	(assert (= (length paddings) (length ranges)))		
     (loop for ra in ranges 
@@ -55,4 +70,22 @@
     offsets
  ))
 
+
+(defun argmax (li)
+  (let ((max-index 0)
+        (max-value (aref li 0))
+        )
+  (loop for val across li
+        for index from 0 do
+        (when (> val max-value)  (setf max-value val) (setf max-index index)))
+  (values max-index max-value)
+  ))
+ 
+(defun lazy-argmax(array)
+	(let* ((max-val (lazy-allreduce #'max array))
+		   (max-array (lazy #'(lambda (x) (if x (coerce 1.0 'single-float) (coerce 0.0 'single-float))) (lazy #'>= array max-val))))
+		   max-array))
+
+(defun binary-decision (array threshold)
+  (lazy #'(lambda (x) (if (>= x threshold) (coerce 1.0 'single-float) (coerce 0.0 'single-float))) array)) 
 

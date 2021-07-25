@@ -1,37 +1,17 @@
-
-(in-package :common-lisp-user)
-
-(defpackage #:lispnet.optimizer
-  (:use
-   #:common-lisp
-   #:petalisp
-   #:lispnet.trainable-parameter)
-  (:export
-   #:optimizer
-   #:sgd
-   #:update-weights
-   #:make-sgd
-   #:adam
-   #:make-adam
-   ))
-   
-(in-package #:lispnet.optimizer)
-
-
+(in-package #:lispnet)
 
 (defclass optimizer ()
   ((learning-rate
     :initarg :learning-rate
     :accessor learning-rate
     :initform 0.001)
-   (network
-    :initarg :network
-    :accessor network
-    :initform (error "Missing network argument"))
    ))
 
 
 (defgeneric update-weights (optimizer &key weights gradients &allow-other-keys))
+
+(defgeneric optimizer-compile (optimizer &key model &allow-other-keys))
+
 
 
 (defclass sgd (optimizer)
@@ -44,26 +24,27 @@
     :initform '())
   ))
   
-(defmethod initialize-instance :after ((opt sgd) &rest initargs) 
-(let ((trainable-parameters
-           (remove-if-not #'trainable-parameter-p (network-parameters (network opt)))))
-			(loop for i below (list-length trainable-parameters) do 
-				(push (lazy-reshape 0.0 (~)) (last-gradients opt)))
-)) 
- 
-(defun make-sgd (&key (learning-rate 0.001) network (momentum 0.0))
-(make-instance 'sgd :learning-rate learning-rate :network network :momentum momentum)
+(defun make-sgd (&key (learning-rate 0.001)(momentum 0.0))
+(make-instance 'sgd :learning-rate learning-rate  :momentum momentum)
 )
 
+(defmethod optimizer-compile ((opt sgd) &key model)
+	(loop for weight in (model-weights model) do 
+			(setf (last-gradients opt) (nconc (last-gradients opt) (list (lazy-reshape 0.0 (~)))))))
+			
+
+
 (defmethod update-weights ((opt sgd) &key weights gradients)
-  (loop for weight in weights 
+  (loop for weight in weights
 		for gradient in gradients
-		for last-gradient in (last-gradients opt) do
-        (setf (trainable-parameter-value weight)
-        	(compute (lazy #'- (lazy #'- (trainable-parameter-value weight)
-					         (lazy #'* (learning-rate opt) gradient))
-				      (lazy #'* (momentum opt) last-gradient))))    				  
+		for last-gradient in (last-gradients opt) 
+		for i from 0 do
+		;;(when (= i 1) (print (compute weight)))
+        (setf (weights-value weight)
+        	(compute (lazy #'- (lazy #'- (weights-value weight) (lazy #'* (learning-rate opt) gradient))
+				               (lazy #'* (momentum opt) last-gradient))))    				  
 		(setf last-gradient (compute(lazy #'* (learning-rate opt) gradient)))
+		;;(when (= i 1) (print (compute weight)))
   )
 
  )
@@ -91,16 +72,15 @@
 	:initform 1)
   ))
 
-(defmethod initialize-instance :after ((opt adam) &rest initargs) 
-(let ((trainable-parameters
-           (remove-if-not #'trainable-parameter-p (network-parameters (network opt)))))
-			(loop for i below (list-length trainable-parameters) do
-				(push (lazy-reshape 0.0 (~)) (m-list opt))
-				(push (lazy-reshape 0.0 (~)) (v-list opt)) 
-))) 
 
-(defun make-adam (&key (learning-rate 0.001) network (beta-1 0.9) (beta-2 0.999))
-(make-instance 'adam :learning-rate learning-rate :network network :beta-1 beta-1 :beta-2 beta-2)
+
+(defmethod optimizer-compile ((opt adam) &key model)
+	(loop for weight in (model-weights model) do 
+			(setf (m-list opt) (nconc (m-list opt) (list(lazy-reshape 0.0 (~)))))
+			(setf (v-list opt) (nconc (v-list opt) (list(lazy-reshape 0.0 (~)))))))
+			
+(defun make-adam (&key (learning-rate 0.001)(beta-1 0.9) (beta-2 0.999))
+(make-instance 'adam :learning-rate learning-rate :beta-1 beta-1 :beta-2 beta-2)
 )
   
 (defmethod update-weights ((opt adam) &key weights gradients)
@@ -112,8 +92,8 @@
 		(setf v (compute(lazy #'+ (lazy #'* (beta-2 opt) v) (lazy #'* (lazy #'- 1.0 (beta-2 opt)) (lazy #'* gradient gradient)))))
 		(let ((m-bias-corrected (lazy #'/ m (lazy #'- 1.0 (lazy #'expt (beta-1 opt) (iterations opt)))))
 			  (v-bias-corrected (lazy #'/ v (lazy #'- 1.0 (lazy #'expt (beta-2 opt) (iterations opt))))))
-				(setf (trainable-parameter-value weight)
-				(compute(lazy #'- (trainable-parameter-value weight)
+				(setf (weights-value weight)
+				(compute(lazy #'- (weights-value weight)
 					      (lazy #'* (learning-rate opt) 
 						  (lazy #'/ m-bias-corrected (lazy #'+ (lazy #'sqrt v-bias-corrected) (epsilon opt))))))						
 				)

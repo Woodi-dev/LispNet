@@ -31,8 +31,4 @@
    (:file "layers/flatten")
    (:file "loss")
    (:file "optimizer")
-   (:file "examples/mnist")
-   
-
-
-   ))
+   (:file "examples/mnist")))

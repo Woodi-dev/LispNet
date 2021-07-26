@@ -5,19 +5,18 @@
 ;;;
 ;;; Trainable Parameters
 (defclass trainable-parameter ()
-  ((weights 
+  ((weights
     :accessor weights)
-   (weights-value	
+   (weights-value
     :accessor weights-value)
-   (shape 
+   (shape
     :accessor weights-shape
-	:initarg :shape
-	)))
+    :initarg :shape)))
 
 
 (defmethod initialize-instance :after ((parameter trainable-parameter) &rest initargs)
   (setf (weights parameter)(make-unknown :shape (weights-shape parameter) :element-type 'single-float)))
-  
+
 (defun make-trainable-parameter (&key shape)
     (make-instance 'trainable-parameter
                    :shape shape))

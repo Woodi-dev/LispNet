@@ -34,10 +34,10 @@
   (let* ((n-weights (length (stencil layer))))
     ;; Generate stencil if not set
     (when (= (length (stencil layer)) 0)
-      (setf (stencil layer) (make-2d-kernel (kernel-size layer)))
+      (setf (stencil layer) (make-2d-kernel (list (kernel-size layer) (kernel-size layer))))
       (setf n-weights (length (stencil layer))))
     (setf (layer-weights layer) (list (make-trainable-parameter
-                                       :shape (~ (out-channels layer) ~ n-weights ~ (in-channels layer)))))))
+                                       :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer)))))))
 
 (defmethod layer-compile ((layer conv2d-layer))
   (let* ((trainable-parameter (first (layer-weights layer)))
@@ -60,7 +60,7 @@
          (stencil (stencil layer))
          (filters (weights (first (layer-weights layer))))
          (batch-size (first (shape-dimensions (lazy-array-shape input))))
-         (input-pad input))
+		 (input-pad input))
     (loop for offsets in stencil do
       (assert (= (length offsets) 2)))
     ;; Determine the bounding box of the stencil.
@@ -71,14 +71,18 @@
               (maxf (aref upper-bounds index) offset)))
     ;; Padding
     (when (string-equal (padding layer) "same")
-      (setf input-pad (pad input :paddings (append '((0 0)(0 0))
+      (setf input-pad (pad input :paddings (append '((0 0))
                                                    (loop for lb across lower-bounds
                                                          for ub across upper-bounds collect
-                                                                                    (list (abs lb) ub))))))
-    (let* ((interior-shape (~l
+                                                                                    (list (abs lb) ub)) '((0 0))))))
+																					
+																
+    (let* ((input-pad-ranges (shape-ranges (lazy-array-shape input-pad)))
+		   (spatial-pad-ranges (list (nth 1 input-pad-ranges) (nth 2 input-pad-ranges)))
+		   (interior-shape (~l
                             (loop for lb across lower-bounds
                                   for ub across upper-bounds
-                                  for range in (cdr (cdr(shape-ranges (lazy-array-shape input-pad))))
+                                  for range in spatial-pad-ranges
                                   collect
                                   (if (and (integerp lb)
                                            (integerp ub))
@@ -88,25 +92,23 @@
                                         (range lo hi))
                                       range))))
            (result
-             (lazy-collapse
-              (lazy-reshape
-               (apply #'lazy-fuse
-                      (loop for filter-index below (out-channels layer)
-                            collect
-                            (lazy-reshape
-                             (lazy-reduce #'+
-                                          (lazy-reshape
+             (lazy-collapse			 
+              (lazy-reshape      					
+                    (lazy-reduce #'+
+                                     (lazy-reshape
                                            (apply #'lazy #'+
                                                   (loop for offsets in stencil
                                                         for offset-index from 0 collect
-                                                                                (lazy #'* (lazy-reshape (lazy-slice (lazy-slice filters filter-index) offset-index) (transform A to 0 A 0 0))
+                                                                        (lazy #'* (lazy-reshape (lazy-slice filters offset-index) (transform c f to 0 0 0 c f))
                                                                                       (lazy-reshape input-pad
                                                                                                     (make-transformation
-                                                                                                     :offsets (list* 0 0 (mapcar #'- offsets)))
-                                                                                                    (~ batch-size ~ (in-channels layer) ~s interior-shape)))))
-                                           (transform A B C D  to B A C D)))
-                             (~ filter-index (+ 1 filter-index) ~ batch-size ~s interior-shape))))
-               (~ (out-channels layer) ~ batch-size ~s (stride-shape interior-shape (strides layer)))
-               (transform c b w h to b c w h)))))
+                                                                                                     :offsets (append '(0) (mapcar #'- offsets) '(0)))
+                                                                                                    (~ batch-size ~s interior-shape ~ (in-channels layer))
+																									(transform b y x c to b y x c 0)
+																									))))
+                                           (transform b y x c f  to c b y x f)))
+				(~ batch-size ~s (stride-shape interior-shape (strides layer)) ~ (out-channels layer)))
+				)))
+	(setq result (lazy #'max result result))
       (if (layer-activation layer)(funcall (layer-activation layer) result)
           result))))

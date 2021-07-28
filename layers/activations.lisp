@@ -9,5 +9,5 @@
     (lazy #'/ totals (lazy-allreduce #'+ totals))))
 
 (defun relu (input)
-  (lazy #'max 0.0 input))
+  (lazy #'max 0f0 input))
   

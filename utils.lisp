@@ -15,7 +15,7 @@
    #:minf
    #:maxf
    #:binary-decision
-   #:lazy-argmax))
+   #:lazy-batch-argmax))
 
 (in-package #:lispnet.utils)
 
@@ -28,15 +28,15 @@
 (defun range-to-list (ra) (list (range-start ra) (range-end ra) (range-step ra)))
 
 (defun stride-range (ra stride)
-  (range (range-start ra) (range-end ra) (* (range-step ra) stride)))
+  (range (range-start ra)(range-end ra) (* (range-step ra) stride)))
 
 (defun stride-shape (s strides)
   (assert (= (shape-rank s) (length strides)))
-  (~l (loop for ra in (shape-ranges s)
-        for stride in strides collect
-            (stride-range ra stride))))
+    (~l (loop for ra in (shape-ranges s)
+				for stride in strides collect
+          (stride-range ra stride) )))
 
-(defun pad (array &key paddings (value 0.0))
+(defun pad (array &key paddings (value 0f0))
   (let ((ranges (shape-ranges (lazy-array-shape array)))
         (new-ranges '()))
     (assert (= (length paddings) (length ranges)))
@@ -50,9 +50,11 @@
       (lazy-collapse (lazy-overwrite result (lazy-reshape array (make-transformation :offsets offsets)))))))
 
 (defun make-2d-kernel (kernel-size)
-  (let ((offsets '()))
-    (loop for i from (- (floor (/ kernel-size 2))) to (floor (/ kernel-size 2)) do
-      (loop for j from (- (floor (/ kernel-size 2))) to (floor (/ kernel-size 2)) do
+  (let ((offsets '())
+		(size-y (first kernel-size))
+		(size-x (second kernel-size)))
+    (loop for i from (- 1  (ceiling size-y 2) ) to (floor (/ size-y 2)) do
+      (loop for j from (- 1  (ceiling size-x 2)) to (floor (/ size-x 2)) do
         (push (list i j) offsets)))
     offsets))
 
@@ -64,19 +66,24 @@
             (when (> val max-value)  (setf max-value val) (setf max-index index)))
     (values max-index max-value)))
 
-(defun lazy-argmax (array)
-  (let* ((max-val (lazy-allreduce #'max array)))
-    (lazy
-     (lambda (x y)
-       (if (>= x y) 1f0 0f0))
-     array
-     max-val)))
+(defun lazy-batch-argmax (array)
+  (let* ((dim-indices (alexandria:iota (lazy-array-rank array)))
+		(max-array (lazy-reshape array (make-transformation :output-mask (nconc (cdr dim-indices) (list(first dim-indices)))))))
+		(loop for i from 1 below (lazy-array-rank array) do
+			(setf max-array (lazy-reduce #'max max-array)))
+		(lazy
+			(lambda (x y)
+				(if (>= x y) 1f0 0f0))
+			 array
+			 (lazy #'* (lazy-reshape max-array (transform a to a 0))(lazy-reshape 1.0 (lazy-array-shape array))))))
+		
+  
 
 (defun binary-decision (array threshold)
   (lazy
    (lambda (x)
      (if (>= x threshold)
-         (coerce 1.0 'single-float)
-         (coerce 0.0 'single-float)))
+         1f0
+         0f0))
    array))
 

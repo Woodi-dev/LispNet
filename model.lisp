@@ -55,7 +55,7 @@
     ;;Training
     (loop for offset below train-input-data-length by batch-size
                   for batch from 0 do
-                 ;; (format  t "Batch: ~S~%" batch)
+                  ;;(format  t "Batch: ~S~%" batch)
           (let* ((batch-range (range offset (min train-input-data-length (+ offset batch-size))))
                  (batch-data (lazy-slices train-input-data batch-range))
                  (batch-labels (lazy-slices train-label-data batch-range))
@@ -128,9 +128,9 @@
          (batch-loss 0)
          (metrics-values (loop for i below (list-length metrics) collect 0.0))
          (gradients (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~)))))
-    (petalisp.graphviz:view (network-outputs validation-network))
-    (petalisp.graphviz:view (network-outputs training-network))
-    (break "W00t")
+    ;;(petalisp.graphviz:view (network-outputs validation-network))
+    ;;(petalisp.graphviz:view (network-outputs training-network))
+    ;;(break "W00t")
     ;; Determine the training data size.
     (dolist (data output-training-data)
       (if (null n)
@@ -144,21 +144,16 @@
       ;; Inputs.
       (push input-parameter args)
       (push batch-input args)
-
       ;; Outputs.
       (loop for data in output-training-data
             for output-parameter in output-parameters do
               (push output-parameter args)
               (push data args))
-
       ;; Trainable parameters.
       (loop for trainable-parameter in trainable-parameters do
         (push (weights trainable-parameter) args)
         (push (weights-value trainable-parameter) args))
       ;; Forward + backward pass
-      #|(if (string-equal mode "train")
-      (print "call-train-network")      ;
-      (print "call-val-network"))|#
       (if (string-equal mode "train")
           ;;train´
           (let* ((net-out-values (apply #'call-network training-network (reverse args))))
@@ -172,8 +167,6 @@
             (setf batch-loss (compute (first net-out-values)))
             (loop for i from 1 to (list-length metrics) do
               (setf (nth (- i 1) metrics-values) (compute (nth i net-out-values)))))))
-
-
 
     (when (string-equal mode "train")
       ;;Average gradients

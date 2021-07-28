@@ -26,7 +26,8 @@
    #:flatten-layer
    #:conv2d-layer
    #:make-conv2d-layer
-
+   #:maxpool2d-layer
+   #:make-maxpool2d-layer
 
 
    ;;model
@@ -55,6 +56,7 @@
    #:mse
    #:mae
    #:binary-cross-entropy
+   #:categorial-cross-entropy
 
    ;;metrics
    #:categorial-accuracy

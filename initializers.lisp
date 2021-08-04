@@ -20,3 +20,10 @@
       (setf (row-major-aref array index)
             (coerce 0.0 element-type)))
     array))
+	
+(defun ones (&key shape (fan-in 0) (fan-out 0) (element-type 'single-float))
+  (let ((array (make-array (shape-dimensions shape) :element-type element-type)))
+    (loop for index below (array-total-size array) do
+      (setf (row-major-aref array index)
+            (coerce 1.0 element-type)))
+    array))

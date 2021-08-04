@@ -90,15 +90,17 @@
                                         for i from 0 do
                                             (setf (nth i metrics-val) (list* metric (nth i metrics-val)))))))
 
-      (format t "~Ss train_loss: ~S - val_loss: ~S " (/ (- (get-internal-real-time) time-start) 1000.0)
+      (format t "~Ss train_loss: ~S - val_loss: ~S" (/ (- (get-internal-real-time) time-start) 1000.0)
                                                                                                         (/ (reduce #'+ batch-train-losses) (length batch-train-losses))
                                                                                                         (/ (reduce #'+ batch-val-losses) (length batch-val-losses)))
-         (if (> (length metrics-train) 0)
-                 (format t "train_metrics: ~S val_metrics: ~S~%" (loop for metric in metrics-train collect
-                                                                                                                        (/ (reduce #'+ metric) (length metric)))
-                                                                                                                (loop for metric in metrics-val collect
-                                                                                                                        (/ (reduce #'+ metric) (length metric))))
-                 (format t "~%"))))))
+         (when (> (length metrics-train) 0)
+                (format t " - train_metrics: ")			 
+				(print-list-horizontal	(loop for metric in metrics-train collect
+											 (/ (reduce #'+ metric) (length metric))))
+				(format t " - val_metrics: ")
+				(print-list-horizontal	(loop for metric in metrics-val collect
+											 (/ (reduce #'+ metric) (length metric)))))					 																 
+                (format t "~%")))))
 
 (defun train-test (model output-training-data
                    &rest training-data-plist
@@ -180,20 +182,20 @@
 
 (defmethod predict ((model model) input)
     (let* ((args '())
-                  (sample-shape (~l (mapcar #'range(array-dimensions input))))
-              (input-parameter (make-unknown :shape (~ 1 ~s sample-shape) :element-type 'single-float))
+              (sample-shape (~l (mapcar #'range(array-dimensions input))))
+              (input-parameter (make-unknown :shape (~s sample-shape) :element-type 'single-float))
                   (network (make-network(forward model input-parameter))))
         ;; Inputs.
-                (push input-parameter args)
-        (push (lazy-reshape input (~ 1 ~s sample-shape)) args)
+         (push input-parameter args)
+        (push (lazy-reshape input (~s sample-shape)) args)
 
         ;; Trainable parameters.
                 (loop for trainable-parameter in (model-weights model) do
                         (push (weights trainable-parameter) args)
                         (push (weights-value trainable-parameter) args))
-                (compute (lazy-drop-axes
+                (compute 
                                  (lazy-array
-                                          (values-list (apply #'call-network network (reverse args)))) 0))))
+                                          (values-list (apply #'call-network network (reverse args)))))))
 
 (defmethod model-weights-total((model model))
    (reduce #'+ (mapcar #'shape-size(mapcar #'weights-shape (model-weights model)))))

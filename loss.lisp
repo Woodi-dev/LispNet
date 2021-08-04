@@ -27,8 +27,9 @@
 
 (defun binary-accuracy (y-true y-pred)
   (let ((binary-pred (binary-decision y-pred 0.5)))
-    (lazy #'/ (lazy-allreduce #'+ (lazy #'(lambda (x y) (if (= x y) 1.0 0.0)) binary-pred y-true))
-          (coerce (shape-size (lazy-array-shape y-pred)) 'single-float ))))
+     (lazy #'/ 
+	      (lazy-allreduce #'+ (lazy #'+ (lazy #'* (lazy #'- 1.0 binary-pred) (lazy #'- 1.0 y-true)) (lazy #'* binary-pred y-true)))
+          (coerce (shape-size (lazy-array-shape y-true)) 'single-float ))))
 
 (defun categorial-accuracy (y-true y-pred)
   (let* ((batch-size (first(shape-dimensions(lazy-array-shape y-true))))

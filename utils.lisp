@@ -15,7 +15,10 @@
    #:minf
    #:maxf
    #:binary-decision
-   #:lazy-batch-argmax))
+   #:lazy-batch-argmax
+   #:lazy-allreduce-batchwise
+   #:print-list-horizontal
+   ))
 
 (in-package #:lispnet.utils)
 
@@ -56,7 +59,7 @@
     (loop for i from (- 1  (ceiling size-y 2) ) to (floor (/ size-y 2)) do
       (loop for j from (- 1  (ceiling size-x 2)) to (floor (/ size-x 2)) do
         (push (list i j) offsets)))
-    offsets))
+    (reverse offsets)))
 
 (defun argmax (li)
   (let ((max-index 0)
@@ -77,13 +80,31 @@
 			 array
 			 (lazy #'* (lazy-reshape max-array (transform a to a 0))(lazy-reshape 1.0 (lazy-array-shape array))))))
 		
-  
+ 
+(defun lazy-allreduce-batchwise (array f)
+  (let* ((dim-indices (alexandria:iota (lazy-array-rank array)))
+		(result-array (lazy-reshape array (make-transformation :output-mask (nconc (cdr dim-indices) (list(first dim-indices)))))))
+		(loop for i from 1 below (lazy-array-rank array) do
+			(setf result-array (lazy-reduce f result-array)))
+		result-array))
 
 (defun binary-decision (array threshold)
   (lazy
    (lambda (x)
-     (if (>= x threshold)
+     (if (>= x (coerce threshold 'single-float))
          1f0
          0f0))
    array))
+
+(defun print-list-horizontal (l)
+   (format t "(")
+   (loop for x in l 
+		 for index from 0 do
+		 (if (= index 0)
+		 (format t "~S" x)
+		 (format t " ~S" x)))
+    (format t ")"))
+		 
+   
+
 

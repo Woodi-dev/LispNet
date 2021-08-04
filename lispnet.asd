@@ -21,6 +21,7 @@
   (:file "layers/layer")
   (:file "layers/activations")
   (:file "layers/conv2d")
+  (:file "layers/transposed-conv2d")
   (:file "layers/dense")
   (:file "layers/flatten")
   (:file "layers/maxpool2d")

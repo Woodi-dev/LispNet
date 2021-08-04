@@ -23,12 +23,15 @@
 (defparameter *test-labels* (load-array "examples/mnist-data/test-labels.npy"))
 
 (defun check-test-data (model index)
-  (let* ((input (compute  (lazy-drop-axes (lazy-slices (lazy #'/ *test-images* 255.0) (range index (+ 1 index))) 0 )))
-         (prediction (compute (predict model input)))
+  (let* ((input (compute   (lazy-slices (lazy #'/ *test-images* 255.0) (range index (+ 1 index)))))
+         (prediction (compute (lazy-drop-axes (predict model input) 0)))
          (predict-val (multiple-value-list (argmax prediction))))
     (format t "label: ~s~%" (argmax(compute (lazy-drop-axes (lazy-slices *test-labels* (range index (+ 1 index))) 0))))
     ;;(format t "prediction: ~s~%" prediction)
-    (format t "prediction: ~s with certainty: ~s~%" (first predict-val) (second predict-val))))
+    (format t "prediction: ~s with certainty: ~s~%" (first predict-val) (second predict-val)))
+	
+	
+	)
 
 (defclass mnist-model (model)
   ((dense1 :accessor dense1)
@@ -39,9 +42,9 @@
    (flatten1 :accessor flatten1)))
 
 (defmethod initialize-instance :after ((model mnist-model) &rest initargs)
-  (setf (dense1 model) (make-dense-layer model :in-features 1024 :out-features 10 :activation #'softmax))
-  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 32 :padding "valid" :kernel-size 3  :strides '(1 1) :activation #'relu))
-  (setf (conv2 model) (make-conv2d-layer model :in-channels 32 :out-channels 64 :padding "valid"  :kernel-size 3 :strides '(1 1) :activation #'relu ))
+  (setf (dense1 model) (make-dense-layer model :in-features 3136 :out-features 10 :activation #'softmax))
+  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 32 :padding "same" :kernel-size 3  :strides '(1 1)))
+  (setf (conv2 model) (make-conv2d-layer model :in-channels 32 :out-channels 64 :padding "same"  :kernel-size 3 :strides '(1 1)))
   (setf (maxpool1 model) (make-maxpool2d-layer model :pool-size '(2 2)))
   (setf (maxpool2 model) (make-maxpool2d-layer model :pool-size '(2 2)))
   (setf (flatten1 model) (make-flatten-layer model)))
@@ -49,8 +52,8 @@
 (defmethod forward ((model mnist-model) input)
    (call (dense1 model)
       (call (flatten1 model)
-		 (call (conv2 model)  
-				(call (maxpool2 model)
+	  	(call (maxpool2 model)
+		   (call (conv2 model)  	
 				 (call (maxpool1 model)
 					 (call (conv1 model)
                           (lazy-reshape input (transform a b c to a b c 0))))))
@@ -58,42 +61,42 @@
 						  
 
 (defun main()
-  (let*  ((optimizer (make-adam :learning-rate 0.001))
+  (let*  ((optimizer (make-adam :learning-rate 0.01))
           (model (make-instance 'mnist-model)))
-    (model-compile model :loss #'categorial-cross-entropy :optimizer optimizer :metrics (list #'categorial-accuracy)) ;; 
+    (model-compile model :loss #'categorial-cross-entropy :optimizer optimizer :metrics (list #'categorial-accuracy #'binary-accuracy )) ;;
     (let* ((train-input-data
-             (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 10000))))
+             (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 200))))
            (train-label-data
-             (compute (lazy-slices *train-labels*(range 0 10000)) ))
+             (compute (lazy-slices *train-labels*(range 0 200)) ))
 
            (val-input-data
-             (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 1000))))
+             (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 100))))
            (val-label-data
-             (compute (lazy-slices *test-labels*(range 0 1000)) )))
+             (compute (lazy-slices *test-labels*(range 0 100)) )))
 	;;(inspect (model-weights model))
       (format t "--------------------------~%")
       (model-summary model)
-      (fit model train-input-data train-label-data val-input-data val-label-data :epochs 10 :batch-size 256)
+      (fit model train-input-data train-label-data val-input-data val-label-data :epochs 15 :batch-size 32)
       (format t "check test data~%")
       (loop for i from 0 below 10 do
         (check-test-data model i)))))
 
 (main)
 
-
+;;(print (compute (binary-accuracy (lazy-array #2a((1 0 0) (0 0 1))) (lazy-array #2a((0.5 0 0) (0.0 0 0.99))))))
+#|
 (defclass test-model (model)
-  ((pool1 :accessor pool1)
-   (conv1 :accessor conv1)
+  ((conv1 :accessor conv1)
+   (pool1 :accessor pool1)
   ))
 
 (defmethod initialize-instance :after ((model test-model) &rest args)
-  (setf (pool1 model) (make-maxpool2d-layer model :pool-size '(2 2) :padding "valid" :strides '(2 2)))
-  (setf (conv1 model) (make-conv2d-layer model :in-channels 2 :out-channels 1 :padding "same" :kernel-size 3  :strides '(2 2)))
+  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 1 :padding "same" :kernel-size 2  :strides '(1 1)))
+  (setf (pool1 model) (make-maxpool2d-layer model :pool-size '(2 2) :strides '(2 2) :padding "same"))
   )
 
 (defmethod forward ((model test-model) input)
-(call (pool1 model)
- (call (conv1 model) input)))
+ (call (pool1 model) input))
  ;;(lazy #'expt (lazy #'-  (call (conv1 model) input)(lazy-reshape 1.0 (~ 1 ~ 2 ~ 4 ~ 4))) 2))
 ;; (mse (lazy-reshape 1.0 (~ 1 ~ 4 ~ 4 ~ 4))
 
@@ -117,10 +120,15 @@
 
 (defun testmain()
   (let*  ((optimizer (make-adam :learning-rate 0.001))
-          (model (make-instance 'test-model)))
+          (model (make-instance 'test-model))
+		  (input #2a((1 3 2 8) (11 3 14 1)(2 2 9 3)(3 0 88 3)))
+		  (weights #2a((1 2 3)(0 1 0)(2 1 2)))
+		  (weights2 #2a((1 2)(3 4)))
+		  )
     (model-compile model :loss #'mse :optimizer optimizer)
-	(setf (weights-value (first (model-weights model))) (lazy-reshape 1.0 (~ 9 ~ 2 ~ 1)))
-    (print (compute (testpredict model (compute (lazy-fuse  (lazy-reshape  1.0 ( ~ 5 ~ 5 ~ 0 1)) (lazy-reshape  2.0 ( ~ 5 ~ 5 ~ 1 2)) )))))))
+	;;(setf (weights-value (first (model-weights model))) (lazy-reshape weights2 (~ 1 ~ 2 ~ 2 ~ 1)))
+    (print (compute (testpredict model (compute(lazy-reshape input (~ 4 ~ 4 ~ 1))))))))
 
 
-;;(testmain)
+(testmain)
+|#

@@ -28,6 +28,8 @@
    #:make-conv2d-layer
    #:maxpool2d-layer
    #:make-maxpool2d-layer
+   #:transposed-conv2d-layer
+   #:make-transposed-conv2d-layer
 
 
    ;;model
@@ -66,6 +68,7 @@
    #:init-weights
    #:glorot-uniform
    #:zeros
+   #:ones
 
    ;;network
    #:train-test

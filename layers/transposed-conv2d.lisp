@@ -1,8 +1,6 @@
 (in-package #:lispnet)
 
-
-
-(defclass conv2d-layer (layer)
+(defclass transposed-conv2d-layer (layer)
   ((in-channels
     :initarg :in-channels
     :accessor in-channels
@@ -30,16 +28,16 @@
 
 
 
-(defmethod initialize-instance :after ((layer conv2d-layer) &rest initargs)
+(defmethod initialize-instance :after ((layer transposed-conv2d-layer) &rest initargs)
   (let* ((n-weights (length (stencil layer))))
     ;; Generate stencil if not set
     (when (= (length (stencil layer)) 0)
-      (setf (stencil layer) (make-2d-kernel (list (kernel-size layer) (kernel-size layer))))
+      (setf (stencil layer) (reverse(make-2d-kernel (list (kernel-size layer) (kernel-size layer)))))
       (setf n-weights (length (stencil layer))))
     (setf (layer-weights layer) (list (make-trainable-parameter
                                        :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer)))))))
 
-(defmethod layer-compile ((layer conv2d-layer))
+(defmethod layer-compile ((layer transposed-conv2d-layer))
   (let* ((trainable-parameter (first (layer-weights layer)))
          (s (lazy-array-shape (weights trainable-parameter)))
          (fan-in (* (nth 1 (shape-dimensions s)) (nth 2 (shape-dimensions s))))
@@ -47,20 +45,20 @@
     (setf (weights-value trainable-parameter)
           (init-weights :shape s :mode #'glorot-uniform :fan-in fan-in :fan-out fan-out))))
 
-(defun make-conv2d-layer (model &key in-channels (out-channels 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()) (activation nil))
-  (let ((layer (make-instance 'conv2d-layer :in-channels in-channels
+(defun make-transposed-conv2d-layer (model &key in-channels (out-channels 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()) (activation nil))
+  (let ((layer (make-instance 'transposed-conv2d-layer :in-channels in-channels
                               :out-channels out-channels :kernel-size kernel-size
                               :strides strides :padding padding :stencil stencil :activation activation)))
     (push layer (model-layers model))
     layer))
 
-(defmethod call ((layer conv2d-layer) input)
+(defmethod call ((layer transposed-conv2d-layer) input)
   (let* ((lower-bounds (make-array 2 :initial-element 0))
          (upper-bounds (make-array 2 :initial-element 0))
          (stencil (stencil layer))
          (filters (weights (first (layer-weights layer))))
-         (batch-size (first (shape-dimensions (lazy-array-shape input))))
-		 (input-pad input))
+		 (strides (strides layer))
+         (batch-size (first (shape-dimensions (lazy-array-shape input)))))
     (loop for offsets in stencil do
       (assert (= (length offsets) 2)))
     ;; Determine the bounding box of the stencil.
@@ -69,20 +67,22 @@
             for index from 0 do
               (minf (aref lower-bounds index) offset)
               (maxf (aref upper-bounds index) offset)))
-    ;; Padding
-    (when (string-equal (padding layer) "same")
-      (setf input-pad (pad input :paddings (append '((0 0))
-                                                   (loop for lb across lower-bounds
-                                                         for ub across upper-bounds collect
-                                                                                    (list (abs lb) ub )) '((0 0))))))
-																					
-														
-    (let* ((input-pad-ranges (shape-ranges (lazy-array-shape input-pad)))
-		   (spatial-pad-ranges (list (nth 1 input-pad-ranges) (nth 2 input-pad-ranges)))
+
+	
+	
+	(let* ((padding-y (- (aref upper-bounds 0) (aref lower-bounds 0))) 
+		   (padding-x  (- (aref upper-bounds 1) (aref lower-bounds 1)))
+		   (input-dim (shape-dimensions (lazy-array-shape input)))
+		   (input-strided (lazy-overwrite 
+									(lazy-reshape 0.0 (~ batch-size ~ (- (* (nth 1 input-dim) (nth 0 strides)) 1)
+													 ~ (- (* (nth 2 input-dim) (nth 1 strides)) 1) ~ (nth 3 input-dim)))
+									(lazy-reshape input (transform b y x c to b (* y (nth 0 strides)) (* x (nth 1 strides)) c))))		   
+		   (input-pad (pad input-strided :paddings (list '(0 0)(list padding-y padding-y) (list padding-x padding-x) '(0 0))))
+		   (input-pad-ranges (shape-ranges (lazy-array-shape input-pad)))
 		   (interior-shape (~l
                             (loop for lb across lower-bounds
                                   for ub across upper-bounds
-                                  for range in spatial-pad-ranges
+                                  for range in (list (nth 1 input-pad-ranges) (nth 2 input-pad-ranges))
                                   collect
                                   (if (and (integerp lb)
                                            (integerp ub))
@@ -100,16 +100,16 @@
                                                   (loop for offsets in stencil
                                                         for offset-index from 0 collect
                                                                         (lazy #'* (lazy-reshape (lazy-slice filters offset-index) (transform c f to 0 0 0 c f))
-                                                                                     (lazy-reshape input-pad																						
+                                                                                      (lazy-reshape input-pad
                                                                                                     (make-transformation
                                                                                                      :offsets (append '(0) (mapcar #'- offsets) '(0)))
-																									(~ batch-size ~s interior-shape ~ (in-channels layer))																									 
+                                                                                                    (~ batch-size ~s interior-shape ~ (in-channels layer))
 																									(transform b y x c to b y x c 0)
 																									))))
-                                     (transform b y x c f  to c b y x f)))
-			   
-				(~ batch-size ~s (stride-shape interior-shape (strides layer)) ~ (out-channels layer)))
-				)))
-	;;(setq result (lazy #'max result result))
+                                           (transform b y x c f  to c b y x f)))))))
+	  (when (string-equal (padding layer) "same")
+	  (setq result (lazy-reshape result
+						(~ batch-size ~ (* (nth 1 input-dim) (nth 0 strides))
+						 ~ (* (nth 2 input-dim) (nth 1 strides)) ~ (out-channels layer)))))								   
       (if (layer-activation layer)(funcall (layer-activation layer) result)
           result))))

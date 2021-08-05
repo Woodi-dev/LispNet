@@ -8,10 +8,10 @@
 ;;; so learning will not be too good.  if you want to run serious tests,
 ;;; you should replace these paths with paths to the full mnist data set.
 
-(defparameter *mnist*
+#|(defparameter *mnist*
   (asdf:find-component
    (asdf:find-system "petalisp.examples")
-   "mnist-data"))
+   "mnist-data"))|#
 
 (defun load-array (path)
   (numpy-file-format:load-array
@@ -43,8 +43,8 @@
 
 (defmethod initialize-instance :after ((model mnist-model) &rest initargs)
   (setf (dense1 model) (make-dense-layer model :in-features 3136 :out-features 10 :activation #'softmax))
-  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 32 :padding "same" :kernel-size 3  :strides '(1 1)))
-  (setf (conv2 model) (make-conv2d-layer model :in-channels 32 :out-channels 64 :padding "same"  :kernel-size 3 :strides '(1 1)))
+  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 32 :padding "same" :kernel-size 3  :strides '(1 1) :activation #'relu))
+ (setf (conv2 model) (make-conv2d-layer model :in-channels 32 :out-channels 64 :padding "same"  :kernel-size 3 :strides '(1 1) :activation #'relu))
   (setf (maxpool1 model) (make-maxpool2d-layer model :pool-size '(2 2)))
   (setf (maxpool2 model) (make-maxpool2d-layer model :pool-size '(2 2)))
   (setf (flatten1 model) (make-flatten-layer model)))
@@ -52,27 +52,27 @@
 (defmethod forward ((model mnist-model) input)
    (call (dense1 model)
       (call (flatten1 model)
-	  	(call (maxpool2 model)
+	  (call (maxpool2 model)
 		   (call (conv2 model)  	
 				 (call (maxpool1 model)
 					 (call (conv1 model)
-                          (lazy-reshape input (transform a b c to a b c 0))))))
-						  )))
+                          (lazy-reshape input (transform a b c to a b c 0)))))))))
+						  
 						  
 
-(defun main()
+(defun train-mnist()
   (let*  ((optimizer (make-adam :learning-rate 0.01))
           (model (make-instance 'mnist-model)))
     (model-compile model :loss #'categorial-cross-entropy :optimizer optimizer :metrics (list #'categorial-accuracy #'binary-accuracy )) ;;
     (let* ((train-input-data
-             (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 200))))
+             (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 1000))))
            (train-label-data
-             (compute (lazy-slices *train-labels*(range 0 200)) ))
+             (compute (lazy-slices *train-labels*(range 0 1000)) ))
 
            (val-input-data
-             (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 100))))
+             (compute (lazy-slices (lazy #'/ *test-images* 255.0)(range 0 200))))
            (val-label-data
-             (compute (lazy-slices *test-labels*(range 0 100)) )))
+             (compute (lazy-slices *test-labels*(range 0 200)) )))
 	;;(inspect (model-weights model))
       (format t "--------------------------~%")
       (model-summary model)
@@ -81,9 +81,9 @@
       (loop for i from 0 below 10 do
         (check-test-data model i)))))
 
-(main)
+(train-mnist)
 
-;;(print (compute (binary-accuracy (lazy-array #2a((1 0 0) (0 0 1))) (lazy-array #2a((0.5 0 0) (0.0 0 0.99))))))
+
 #|
 (defclass test-model (model)
   ((conv1 :accessor conv1)

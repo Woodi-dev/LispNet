@@ -55,7 +55,7 @@
     ;;Training
     (loop for offset below train-input-data-length by batch-size
                   for batch from 0 do
-                  ;;(format  t "Batch: ~S~%" batch)
+                 ;; (format  t "Batch: ~S~%" batch)
           (let* ((batch-range (range offset (min train-input-data-length (+ offset batch-size))))
                  (batch-data (lazy-slices train-input-data batch-range))
                  (batch-labels (lazy-slices train-label-data batch-range))
@@ -63,7 +63,7 @@
                  (batch-output (compute (lazy-collapse batch-labels)))
                                  (input-parameter (make-unknown :shape (~ (range-size batch-range) ~s sample-shape) :element-type 'single-float)))
             (multiple-value-bind (batch-loss metrics)
-            (train-test model (list batch-output)
+           (train-test model (list batch-output)
                    :loss (model-loss model) :optimizer (model-optimizer model) :mode "train"
                    :input-parameter input-parameter :batch-input batch-input)
               (setq batch-train-losses (append batch-train-losses (list batch-loss)))

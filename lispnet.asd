@@ -27,4 +27,5 @@
   (:file "layers/maxpool2d")
   (:file "loss")
   (:file "optimizer")
-  (:file "examples/mnist")))
+  (:file "examples/mnist")
+  (:file "examples/isbi")))

@@ -81,22 +81,23 @@
       (loop for i from 0 below 10 do
         (check-test-data model i)))))
 
-(train-mnist)
+;;(train-mnist)
 
 
-#|
+
 (defclass test-model (model)
-  ((conv1 :accessor conv1)
-   (pool1 :accessor pool1)
+  ((dense1 :accessor dense1)
+  (dense2 :accessor dense2)
   ))
 
 (defmethod initialize-instance :after ((model test-model) &rest args)
-  (setf (conv1 model) (make-conv2d-layer model :in-channels 1 :out-channels 1 :padding "same" :kernel-size 2  :strides '(1 1)))
-  (setf (pool1 model) (make-maxpool2d-layer model :pool-size '(2 2) :strides '(2 2) :padding "same"))
+  (setf (dense1 model) (make-dense-layer model :in-features 10000 :out-features 10))
+  (setf (dense2 model) (make-dense-layer model :in-features 10 :out-features 50))
+
   )
 
 (defmethod forward ((model test-model) input)
- (call (pool1 model) input))
+ (call (dense2 model)(call (dense1 model) input)))
  ;;(lazy #'expt (lazy #'-  (call (conv1 model) input)(lazy-reshape 1.0 (~ 1 ~ 2 ~ 4 ~ 4))) 2))
 ;; (mse (lazy-reshape 1.0 (~ 1 ~ 4 ~ 4 ~ 4))
 
@@ -119,16 +120,27 @@
                                           (values-list (apply #'call-network network (reverse args)))) )))
 
 (defun testmain()
-  (let*  ((optimizer (make-adam :learning-rate 0.001))
+  (let*  ((optimizer (make-sgd :learning-rate 0.01))
           (model (make-instance 'test-model))
-		  (input #2a((1 3 2 8) (11 3 14 1)(2 2 9 3)(3 0 88 3)))
-		  (weights #2a((1 2 3)(0 1 0)(2 1 2)))
-		  (weights2 #2a((1 2)(3 4)))
+		  (input (compute (glorot-uniform :shape (~ 1000 ~ 10000) :fan-in 10000 :fan-out 50)))
+		  (output (compute (glorot-uniform :shape (~ 1000 ~ 50) :fan-in 50 :fan-out 50)))
+		  (weights (model-weights model))
 		  )
     (model-compile model :loss #'mse :optimizer optimizer)
+	;;(print "Weights")
+	;;(print (weights-value (first weights)))
+	;;(print (weights-value (second weights)))
+
+
+	(fit model input output input output :epochs 1 :batch-size 1000)
+	;;(print "Weights afterwards")
+	;;	(print (weights-value (first weights)))
+	;;(print (weights-value (second weights)))
+	))
+	
 	;;(setf (weights-value (first (model-weights model))) (lazy-reshape weights2 (~ 1 ~ 2 ~ 2 ~ 1)))
-    (print (compute (testpredict model (compute(lazy-reshape input (~ 4 ~ 4 ~ 1))))))))
+    ;;(print (compute (testpredict model (compute(lazy-reshape input (~ 4 ~ 4 ~ 1))))))))
 
 
-(testmain)
-|#
+;;(testmain)
+

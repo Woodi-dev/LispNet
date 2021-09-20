@@ -8,6 +8,9 @@
 (defun mse (y-true y-pred)  (lazy #'/ (lazy-allreduce #'+ (lazy #'expt (lazy #'- y-pred y-true) 2))
                                   (coerce (shape-size (lazy-array-shape y-pred)) 'single-float )))
 
+;;(defun mse (y-true y-pred) (lazy-allreduce #'+ (lazy #'* 2f0 y-pred)))
+;;(defun mse (y-true y-pred) (lazy-allreduce #'+  y-pred))
+
 (defun mae (y-true y-pred)  (lazy #'/ (lazy-allreduce #'+ (lazy #'abs (lazy #'- y-pred y-true) ))
                                   (coerce (shape-size (lazy-array-shape y-pred)) 'single-float )))
 

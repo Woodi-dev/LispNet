@@ -118,7 +118,7 @@
 (defun matmul (A B)
   (lazy-reduce #'+
                (lazy #'*
-                     (lazy-reshape (coerce-to-matrix A) (transform m n to n m 0))
-                     (lazy-reshape (coerce-to-matrix B) (transform n k to n 0 k)))))
+                     (lazy-reshape A (transform m n to n m 0))
+                     (lazy-reshape B (transform n k to n 0 k)))))
 
 

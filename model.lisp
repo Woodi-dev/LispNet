@@ -63,13 +63,15 @@
                  (batch-output (compute (lazy-collapse batch-labels)))
                                  (input-parameter (make-unknown :shape (~ (range-size batch-range) ~s sample-shape) :element-type 'single-float)))
             (multiple-value-bind (batch-loss metrics)
-           (train-test model (list batch-output)
+           (time(train-test model (list batch-output)
                    :loss (model-loss model) :optimizer (model-optimizer model) :mode "train"
-                   :input-parameter input-parameter :batch-input batch-input)
+                   :input-parameter input-parameter :batch-input batch-input))
               (setq batch-train-losses (append batch-train-losses (list batch-loss)))
                           (loop for metric in metrics
                                         for i from 0 do
                                             (setf (nth i metrics-train) (list* metric (nth i metrics-train)))))))
+											
+
         ;;Validation
         (loop for offset below val-input-data-length by batch-size
                   for batch from 0 do
@@ -82,9 +84,9 @@
                                  (input-parameter (make-unknown :shape (~ (range-size batch-range) ~s sample-shape) :element-type 'single-float)))
 
             (multiple-value-bind (batch-loss metrics)
-            (train-test model (list batch-output)
+           (time(train-test model (list batch-output)
                    :loss (model-loss model) :optimizer (model-optimizer model) :mode "test"
-                   :input-parameter input-parameter :batch-input batch-input)
+                   :input-parameter input-parameter :batch-input batch-input))
              (setq batch-val-losses (append  batch-val-losses (list batch-loss)))
                           (loop for metric in metrics
                                         for i from 0 do
@@ -130,9 +132,9 @@
          (batch-loss 0)
          (metrics-values (loop for i below (list-length metrics) collect 0.0))
          (gradients (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~)))))
-    ;;(petalisp.graphviz:view (network-outputs validation-network))
-    ;;(petalisp.graphviz:view (network-outputs training-network))
-    ;;(break "W00t")
+   ;;(petalisp.graphviz:view (petalisp.ir:ir-from-lazy-arrays ( network-outputs validation-network)) :filename "val-ir.pdf")
+   ;;(petalisp.graphviz:view (petalisp.ir:ir-from-lazy-arrays (network-outputs training-network)) :filename "train-ir.pdf")
+   ;; (break "W00t")
     ;; Determine the training data size.
     (dolist (data output-training-data)
       (if (null n)
@@ -175,6 +177,13 @@
       (loop for i below (length gradients) do
         (setf (nth i gradients) (lazy #'/ (nth i gradients) n)))
       ;;Update weights
+	  
+	  ;;(print (compute (nth 0 gradients)))
+	 ;; (print (compute (nth 1 gradients)))
+
+	  ;;(break "W00t")
+	  
+	  
       (update-weights optimizer :weights trainable-parameters :gradients gradients))
     ;; Return the batch loss and metrics.
     (values batch-loss metrics-values)))

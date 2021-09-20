@@ -91,21 +91,23 @@
                                         (assert (< lo hi))
                                         (range lo hi))
                                       range))))
+		   (interior  (apply #'lazy-fuse (loop for offsets in stencil
+											for offset-index from 0 collect
+												(lazy-reshape input-pad																						
+													(make-transformation
+														:offsets (append '(0) (mapcar #'- offsets) '(0)))
+													(~ batch-size ~s interior-shape ~ (in-channels layer))																									 
+													(transform b y x c to offset-index b y x c 0)))))
+		 				
+							
            (result
              (lazy-collapse			 
               (lazy-reshape      					
                     (lazy-reduce #'+
                                      (lazy-reshape
-                                           (apply #'lazy #'+
-                                                  (loop for offsets in stencil
-                                                        for offset-index from 0 collect
-                                                                        (lazy #'* (lazy-reshape (lazy-slice filters offset-index) (transform c f to 0 0 0 c f))
-                                                                                     (lazy-reshape input-pad																						
-                                                                                                    (make-transformation
-                                                                                                     :offsets (append '(0) (mapcar #'- offsets) '(0)))
-																									(~ batch-size ~s interior-shape ~ (in-channels layer))																									 
-																									(transform b y x c to b y x c 0)
-																									))))
+                                           (lazy-reduce #'+
+                                                  (lazy #'* (lazy-reshape filters (transform n c f to n 0 0 0 c f))
+                                                             interior))
                                      (transform b y x c f  to c b y x f)))
 			   
 				(~ batch-size ~s (stride-shape interior-shape (strides layer)) ~ (out-channels layer)))

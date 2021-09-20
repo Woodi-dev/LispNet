@@ -28,7 +28,7 @@
 		  (fan-in (first(shape-dimensions s)))
 		  (fan-out (second(shape-dimensions s))))
 		  (setf (weights-value weights)
-					(init-weights :shape s :mode #'glorot-uniform :fan-in fan-in :fan-out fan-out))
+					(init-weights :shape s :mode #'ones :fan-in fan-in :fan-out fan-out))
 		  (setf (weights-value bias)
 					(init-weights :shape (lazy-array-shape (weights bias)) :mode #'zeros))))
 									

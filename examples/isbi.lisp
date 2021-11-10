@@ -9,9 +9,9 @@
   (numpy-file-format:load-array
    (asdf:system-relative-pathname (asdf:find-system "lispnet") path)))
 
-(defparameter *train-images* (load-array "examples/isbi-data/train-images.npy"))
-(defparameter *train-labels* (load-array "examples/isbi-data/train-labels.npy"))
-(defparameter *test-images* (load-array "examples/isbi-data/test-images.npy"))
+(defparameter *isbi-train-images* (load-array "examples/isbi-data/train-images.npy"))
+(defparameter *isbi-train-labels* (load-array "examples/isbi-data/train-labels.npy"))
+(defparameter *isbi-test-images* (load-array "examples/isbi-data/test-images.npy"))
 
 
 
@@ -68,14 +68,14 @@
           (model (make-instance 'unet-model)))
     (model-compile model :loss #'mse :optimizer optimizer :metrics (list #'binary-accuracy)) ;;
     (let* ((train-input-data
-             (compute (lazy-slices (lazy #'/ *train-images* 255.0) (range 0 1))))
+             (compute (lazy-slices (lazy #'/ *isbi-train-images* 255.0) (range 0 1))))
            (train-label-data
-             (compute (lazy-slices (lazy #'/ *train-labels* 255.0)(range 0 1)) ))
+             (compute (lazy-slices (lazy #'/ *isbi-train-labels* 255.0)(range 0 1)) ))
 
            (val-input-data
-             (compute (lazy-slices (lazy #'/ *train-images* 255.0)(range 20 21))))
+             (compute (lazy-slices (lazy #'/ *isbi-train-images* 255.0)(range 20 21))))
            (val-label-data
-             (compute (lazy-slices (lazy #'/ *train-labels* 255.0)(range 20 21)) )))
+             (compute (lazy-slices (lazy #'/ *isbi-train-labels* 255.0)(range 20 21)) )))
       (format t "--------------------------~%")
       (model-summary model)
       (fit model train-input-data train-label-data val-input-data val-label-data :epochs 1 :batch-size 1)

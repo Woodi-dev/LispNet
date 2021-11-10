@@ -81,5 +81,6 @@
    #:trainable-parameter
    #:make-trainable-parameter
    #:trainable-parameter-p
-
+   
+   #:train-mnist
    ))

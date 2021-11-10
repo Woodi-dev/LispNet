@@ -4,6 +4,7 @@
 
   :depends-on
   ("petalisp"
+   "petalisp.graphviz"
    "numpy-file-format"
    "asdf")
 

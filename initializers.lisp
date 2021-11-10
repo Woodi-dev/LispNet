@@ -6,7 +6,7 @@
   (funcall mode :shape shape :fan-in fan-in :fan-out fan-out :element-type element-type))
 
 
-(defun glorot-uniform (&key shape fan-in fan-out (element-type 'single-float))
+(defun glorot-uniform (&key shape fan-in fan-out (element-type 'single-float) )
   (let ((array (make-array (shape-dimensions shape) :element-type element-type))
         (limit (sqrt (/ 6.0 (+ fan-in fan-out)))))
     (loop for index below (array-total-size array) do

@@ -44,7 +44,7 @@
                  (sample-shape (~l (mapcar #'range (cdr (array-dimensions train-input-data))))))
     (assert (= train-input-data-length train-label-data-length))
      (assert (= val-input-data-length val-label-data-length))
-    (format t "Train on ~d samples~%" train-input-data-length)
+    (format t "~%Train on ~d samples~%" train-input-data-length)
     (loop for epoch from 1 to epochs do
     (format t "Epoch ~d/~d~%" epoch epochs)
     (let ((batch-train-losses '())
@@ -55,7 +55,7 @@
     ;;Training
     (loop for offset below train-input-data-length by batch-size
                   for batch from 0 do
-                 ;; (format  t "Batch: ~S~%" batch)
+                  ;;(format  t "Batch: ~S~%" batch)
           (let* ((batch-range (range offset (min train-input-data-length (+ offset batch-size))))
                  (batch-data (lazy-slices train-input-data batch-range))
                  (batch-labels (lazy-slices train-label-data batch-range))
@@ -63,9 +63,9 @@
                  (batch-output (compute (lazy-collapse batch-labels)))
                                  (input-parameter (make-unknown :shape (~ (range-size batch-range) ~s sample-shape) :element-type 'single-float)))
             (multiple-value-bind (batch-loss metrics)
-           (time(train-test model (list batch-output)
+           (train-test model (list batch-output)
                    :loss (model-loss model) :optimizer (model-optimizer model) :mode "train"
-                   :input-parameter input-parameter :batch-input batch-input))
+                   :input-parameter input-parameter :batch-input batch-input)
               (setq batch-train-losses (append batch-train-losses (list batch-loss)))
                           (loop for metric in metrics
                                         for i from 0 do
@@ -75,7 +75,7 @@
         ;;Validation
         (loop for offset below val-input-data-length by batch-size
                   for batch from 0 do
-                                ;;  (format  t "Batch: ~S~%" batch)
+                        ;;(format  t "Batch: ~S~%" batch)
           (let* ((batch-range (range offset (min val-input-data-length (+ offset batch-size))))
                  (batch-data (lazy-slices val-input-data batch-range))
                  (batch-labels (lazy-slices val-label-data batch-range))
@@ -84,17 +84,17 @@
                                  (input-parameter (make-unknown :shape (~ (range-size batch-range) ~s sample-shape) :element-type 'single-float)))
 
             (multiple-value-bind (batch-loss metrics)
-           (time(train-test model (list batch-output)
+           (train-test model (list batch-output)
                    :loss (model-loss model) :optimizer (model-optimizer model) :mode "test"
-                   :input-parameter input-parameter :batch-input batch-input))
+                   :input-parameter input-parameter :batch-input batch-input)
              (setq batch-val-losses (append  batch-val-losses (list batch-loss)))
                           (loop for metric in metrics
                                         for i from 0 do
                                             (setf (nth i metrics-val) (list* metric (nth i metrics-val)))))))
-
-      (format t "~Ss train_loss: ~S - val_loss: ~S" (/ (- (get-internal-real-time) time-start) 1000.0)
+		
+      (format t "~Ss train_loss: ~S - val_loss: ~S" (/ (- (get-internal-real-time) time-start) (float INTERNAL-TIME-UNITS-PER-SECOND))
                                                                                                         (/ (reduce #'+ batch-train-losses) (length batch-train-losses))
-                                                                                                        (/ (reduce #'+ batch-val-losses) (length batch-val-losses)))
+                                                                                                       (/ (reduce #'+ batch-val-losses) (length batch-val-losses)))
          (when (> (length metrics-train) 0)
                 (format t " - train_metrics: ")			 
 				(print-list-horizontal	(loop for metric in metrics-train collect
@@ -134,7 +134,7 @@
          (gradients (loop for i below (list-length trainable-parameters) collect (lazy-reshape 0.0 (~)))))
    ;;(petalisp.graphviz:view (petalisp.ir:ir-from-lazy-arrays ( network-outputs validation-network)) :filename "val-ir.pdf")
    ;;(petalisp.graphviz:view (petalisp.ir:ir-from-lazy-arrays (network-outputs training-network)) :filename "train-ir.pdf")
-   ;; (break "W00t")
+    ;;(break "W00t")
     ;; Determine the training data size.
     (dolist (data output-training-data)
       (if (null n)
@@ -162,10 +162,12 @@
           ;;train´
           (let* ((net-out-values (apply #'call-network training-network (reverse args))))
             (loop for i below (list-length trainable-parameters) do
-              (setf (nth i gradients)(nth i net-out-values)))
+			 (setf (nth i gradients)(nth i net-out-values)))
             (setf batch-loss (compute (nth (list-length trainable-parameters) net-out-values)))
             (loop for i from 1 to (list-length metrics) do
-              (setf (nth (- i 1) metrics-values) (compute (nth (+ (list-length trainable-parameters) i) net-out-values)))))
+              (setf (nth (- i 1) metrics-values) (compute (nth (+ (list-length trainable-parameters) i) net-out-values))))
+			  
+			  )
           ;;test
           (let* ((net-out-values (apply #'call-network validation-network (reverse args))))
             (setf batch-loss (compute (first net-out-values)))
@@ -185,6 +187,8 @@
 	  
 	  
       (update-weights optimizer :weights trainable-parameters :gradients gradients))
+	 ;;Force garbage collection
+	  (gc :full t)
     ;; Return the batch loss and metrics.
     (values batch-loss metrics-values)))
 

@@ -70,7 +70,7 @@
    (let*  ((v (lazy-drop-axes (lazy-slices input (range 0 1) 3) 3))
 		  (f (lazy-drop-axes (lazy-slices input (range 1 2) 3) 3))
 		  (c (lazy-drop-axes (lazy-slices input (range 2 3) 3) 3))
-		  (prediction (jacobi model v f c))
+		  (prediction (vcycle model v f c))
           (size (second (shape-dimensions (lazy-array-shape input))))
    		  (level  (floor (log (1- size) 2)))
 		  (residuum (call (create-layer 'residual-layer model :level level) prediction f c)))

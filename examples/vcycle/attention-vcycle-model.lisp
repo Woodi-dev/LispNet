@@ -37,8 +37,8 @@
 						(setq v (call smoother-jacobi v f c)))
 						v)
 		    (let* ((residual (create-layer 'residual-layer model :level level))
-					(restrict-c (create-layer 'att-restriction-layer model :filters 1 :model model ))			;;:kernel-initializer #'glorot-uniform
-			       (restrict (create-layer 'att-restriction-layer model :filters 1 :model model :trainable nil))
+				;;	(restrict-c (create-layer 'att-restriction-layer model :filters 1 :model model ))			;;:kernel-initializer #'glorot-uniform
+			       (restrict (create-layer 'att-restriction-layer model :filters 1 :model model :trainable nil ));;:kernel-initializer #'glorot-uniform
 				;;  (restrict-normal (create-layer 'restriction-layer model :level level :trainable nil))
 			  	;;(prolongate-normal (create-layer 'prolongation-layer model :level (1- level) :restrict-layer restrict-normal))
 				  (prolongate (create-layer 'att-prolongation-layer model :filters 1  :model model :restrict-layer restrict))
@@ -94,7 +94,7 @@
    		  (level  (floor (log (1- size) 2)))
 		  (residuum (call (create-layer 'residual-layer model :level level ) prediction f c)))
 		;;  prediction))
-		(lazy #'+ (lazy #'* 0.0 v)  (lazy #'* 1.0  prediction))))
+		  prediction))
 		  
 ;;this forward pass returns L2-norm of residuum  
 (defmethod forward-residuum ((model attention-vcycle-model) input)

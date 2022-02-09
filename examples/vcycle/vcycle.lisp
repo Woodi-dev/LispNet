@@ -49,7 +49,7 @@
 		
 		
 		
-			(loop while (or (= i 1) (and (< r-new 1d60) (< i 50) (>= r-new r-old)) (and (< r-new r-old)  (>= (/ r-new r0) err) (< i 250))) do ;; 
+			(loop while (or (= i 1) (and (< r-new 1d60) (< i 50) (>= r-new r-old)) (and (< r-new r-old)  (>= (/ r-new r0) err) )) do ;; (< i 250)
 				(setf r-old r-new)
 				(setq input (compute (stackInput (predict model input) f c)))
 				(setf r-new  (predict residuum-model input))
@@ -70,11 +70,13 @@
 		  (att-calc-model (make-instance 'attention-vcycle-model :output #'forward-calc))
 		  (vcycle-train-model (make-instance 'vcycle-model :output #'forward-train))
 		  (vcycle-calc-model (make-instance 'vcycle-model :output #'forward-calc))
-		  (gmg (make-instance 'vcycle-model :output #'forward-calc))
-		  (data (compute (lazy-slices *train-data* (range 0 1)))))
+		  (gmg (make-instance 'vcycle-model :output #'forward-calc)))
 
-	(predict att-calc-model (compute (lazy-slices *train-data* (range 0 1))))
-	(predict vcycle-calc-model (compute (lazy-slices *train-data* (range 0 1))))
+
+	
+	;; (print (compute (lazy-slice *test2-data* 8) 2))
+	;;(predict att-calc-model (compute (lazy-slices *train2-data* (range 8 225 9))))
+;;	(predict vcycle-calc-model (compute (lazy-slices *train-data* (range 0 1))))
 ;;	(model-summary att-calc-model)
 	 (model-compile att-train-model :loss #'output-loss :optimizer (make-adam :learning-rate 0.001))
 	 (model-compile vcycle-train-model :loss #'output-loss :optimizer (make-adam :learning-rate 0.001))
@@ -93,24 +95,24 @@
 	 
 	(format t "------ compute convergence of deep multi grid ------~%")
 	;;(load-weights vcycle-calc-model  "weights-vcycle/5/")
-	;;(convergence vcycle-calc-model (compute (lazy-slices *test2-data* (range 0 225 9))) 1e-10)
+	;;(convergence vcycle-calc-model (compute (lazy-slices *test2-data* (range 8 225 9))) 1e-10)
 	
 	
 	(format t "------ compute convergence of deep attention multi grid ------~%")
 
-	(loop for i from 1 to 250 do
+;;	(loop for i from 250 to 250 do
 	;;	(format t "~S " i)
-	;;(load-weights att-calc-model  (format nil "weights-att_5its_1e-3_3/~a/" i))	
-	(load-weights att-calc-model  (format nil "weights-test/~a/" i))	
+	;;(load-weights att-calc-model  (format nil "weights-multi_5its_1e-3/~a/" i))	
+	;;(load-weights att-calc-model  (format nil "weights-test/~a/" i))	
 	;;	(loop for j from 0 to 6 do
-		(convergence att-calc-model  (compute (lazy-slices *test2-data* (range 8 225 9))) 1e-10)) ;;
+		;;(convergence att-calc-model  (compute (lazy-slices *test2-data* (range 8 225 1))) 1e-10)) ;;
 	;;(load-weights att-calc-model "weights-att/74/" )	
 	;;(loop for i from 0 to 6 do
 		;;(convergence att-calc-model (compute (lazy-slices *test-data* (range i 350 7))) 1e-10))
 	
 	
 	(format t "------ compute convergence of geometric multi grid ------~%")
-;;	(convergence gmg (compute (lazy-slices *test2-data* (range 8 225 9))) 1e-10)
+	(convergence att-calc-model (compute (lazy-slices *test2-data* (range 8 225 9))) 1e-10)
 	
 	
 	(format t "--------- jump test ----------~%")

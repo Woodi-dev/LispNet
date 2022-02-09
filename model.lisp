@@ -227,10 +227,10 @@
       (push input-parameter args)
       (push batch-input args)
       ;; Outputs.
-      (loop for data in output-training-data
-            for output-parameter in output-parameters do
-              (push output-parameter args)
-              (push data args))
+      ;;(loop for data in output-training-data
+       ;;     for output-parameter in output-parameters do
+        ;;      (push output-parameter args)
+         ;;     (push data args))
       ;; Parameters.
       (loop for parameter in model-weights do
         (push (weights parameter) args)
@@ -284,9 +284,8 @@
                 (loop for trainable-parameter in (model-weights model) do
                         (push (weights trainable-parameter) args)
                         (push (weights-value trainable-parameter) args))
-			(let ((prediction (compute 
-                                 (lazy-array
-                                          (values-list (apply #'call-network network (reverse args)))))))
+		
+			(let ((prediction (first (apply #'call-network network (reverse args)))))
 					(setf (model-state-running (model-state model)) nil)
 					prediction))))
 

@@ -356,8 +356,8 @@ def genJumpCountTest(batch_size, level):
 #jump = genJumpTest(150,5)
 #np.save("jump",jump)
 
-jumpexp = genJumpExpTest(500,5)
-np.save("jumpexp",jumpexp)
+#jumpexp = genJumpExpTest(500,5)
+#np.save("jumpexp",jumpexp)
 
 #jumpcount= genJumpCountTest(33,5)
 #np.save("jumpcount",jumpcount)
@@ -365,11 +365,12 @@ np.save("jumpexp",jumpexp)
 
 
 level=5
-batch_size=33
+batch_size=20
 #c= genTest(batch_size,level)
-c=np.load("jumpcount.npy")[::]
-
-
+c=np.load("test2.npy")
+print(c[8])
+plt.imshow(c[8,:,:,2])
+plt.show()
 fig = plt.figure(figsize=(batch_size, level))
 cols=5
 rows = np.ceil(batch_size/5)

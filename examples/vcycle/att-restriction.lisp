@@ -44,10 +44,11 @@
 		   (progn
 				(setf (att-conv layer) (make-instance 'conv2d-layer :in-channels 1 :out-channels (filters layer) :kernel-size 3 :padding "same" :activation #'channel-softmax :trainable (trainable layer)));;
 				(setf (restrict-conv layer) (make-instance 'conv2d-layer  :in-channels (filters layer) :out-channels 1 :kernel-size 3 :padding "same" :strides '(2 2) :kernel-initializer (kernel-initializer layer)  :trainable (trainable layer))) ;; 
-				(setf (layer-weights layer) (list  (layer-weights (att-conv layer)) (layer-weights (restrict-conv layer)))))
+				(setf (layer-weights layer)  (append (layer-weights (att-conv layer)) (layer-weights (restrict-conv layer))))
+				)
 		   (progn 
 				(setf (restrict-conv layer) (make-instance 'conv2d-layer  :in-channels (filters layer) :out-channels 1 :kernel-size 3 :padding "same" :strides '(2 2) :kernel-initializer (kernel-initializer layer)  :trainable (trainable layer))) ;; 
-				(setf (layer-weights layer) (list (layer-weights (restrict-conv layer)))))))						   
+				(setf (layer-weights layer) (layer-weights (restrict-conv layer))))))					   
 		
 (defmethod layer-compile ((layer att-restriction-layer))
 	(when (> (filters layer) 1) 

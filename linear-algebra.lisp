@@ -1,25 +1,5 @@
 (in-package :common-lisp-user)
-
-(defpackage #:lispnet.linear-algebra
-  (:use
-   #:common-lisp
-   #:petalisp)
-  (:export
-   #:coerce-to-matrix
-   #:coerce-to-scalar
-   #:matrix
-   #:square-matrix
-   #:matrix
-   #:square-matrix
-   #:eye
-   #:transpose
-   #:norm
-   #:dot
-   #:asum
-   #:max*
-   #:matmul))
-
-(in-package #:lispnet.linear-algebra)
+(in-package #:lispnet)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -100,8 +80,8 @@
     (transpose x)
     (coerce-to-matrix y))))
 
-(defun norm (x)
-  (lazy #'sqrt (dot x x)))
+(defun l2norm (x)	
+	(lazy #'sqrt (lazy-allreduce #'+ (lazy #'* x x))))
 
 (defun asum (x)
   (coerce-to-scalar

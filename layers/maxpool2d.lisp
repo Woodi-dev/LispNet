@@ -18,15 +18,10 @@
     :accessor stencil
     :initform '())))
 	  
-(defun make-maxpool2d-layer (model &key in-channels (pool-size '(2 2)) (strides nil) (padding "valid") (stencil '()) (activation nil))
-  (let ((layer (make-instance 'maxpool2d-layer :pool-size pool-size
-                              :strides strides :padding padding :stencil stencil)))
-    (push layer (model-layers model))
-    layer))
    
 (defmethod layer-compile ((flatten-layer layer)))
 
-(defmethod call ((layer maxpool2d-layer) input)
+(defmethod call ((layer maxpool2d-layer) input &key)
   (let* ((lower-bounds (make-array 2 :initial-element 0))
          (upper-bounds (make-array 2 :initial-element 0))
          (batch-size (first (shape-dimensions (lazy-array-shape input))))

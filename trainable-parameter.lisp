@@ -11,15 +11,20 @@
     :accessor weights-value)
    (shape
     :accessor weights-shape
-    :initarg :shape)))
+    :initarg :shape)
+   (trainable 
+    :accessor trainable
+	:initarg :trainable
+	:initform t)))
 
 
 (defmethod initialize-instance :after ((parameter trainable-parameter) &rest initargs)
-  (setf (weights parameter)(make-unknown :shape (weights-shape parameter) :element-type 'single-float)))
+  (setf (weights parameter)(make-unknown :shape (weights-shape parameter) :element-type *network-precision*)))
 
-(defun make-trainable-parameter (&key shape)
+(defun make-trainable-parameter (&key shape (trainable t))
     (make-instance 'trainable-parameter
-                   :shape shape))
+                   :shape shape
+				   :trainable trainable))
 
 (declaim (inline trainable-parameter-p))
 (defun trainable-parameter-p (object)

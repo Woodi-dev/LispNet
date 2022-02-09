@@ -11,7 +11,7 @@
         (limit (sqrt (/ 6.0 (+ fan-in fan-out)))))
     (loop for index below (array-total-size array) do
       (setf (row-major-aref array index)
-            (- (coerce limit element-type) (random (coerce (* 2 limit) element-type)))))
+            (- (coerce limit element-type)(random  (coerce (* 2 limit) element-type)))))
     array))
 
 (defun zeros (&key shape (fan-in 0) (fan-out 0) (element-type 'single-float))

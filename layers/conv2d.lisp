@@ -26,7 +26,15 @@
    (stencil
     :initarg :stencil
     :accessor stencil
-    :initform '())))
+    :initform '())
+   (trainable
+    :initarg :trainable
+	:accessor trainable
+	:initform t)
+   (kernel-initializer
+	:initarg :kernel-initializer
+	:accessor kernel-initializer
+	:initform #'glorot-uniform)))
 
 
 
@@ -37,24 +45,20 @@
       (setf (stencil layer) (make-2d-kernel (list (kernel-size layer) (kernel-size layer))))
       (setf n-weights (length (stencil layer))))
     (setf (layer-weights layer) (list (make-trainable-parameter
-                                       :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer)))))))
+                                       :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer)) 
+									   :trainable (trainable layer))))))
 
 (defmethod layer-compile ((layer conv2d-layer))
   (let* ((trainable-parameter (first (layer-weights layer)))
          (s (lazy-array-shape (weights trainable-parameter)))
          (fan-in (* (nth 1 (shape-dimensions s)) (nth 2 (shape-dimensions s))))
          (fan-out (/ (* (nth 0 (shape-dimensions s)) (nth 1 (shape-dimensions s))) (reduce #'* (strides layer)))))
-    (setf (weights-value trainable-parameter)
-          (init-weights :shape s :mode #'glorot-uniform :fan-in fan-in :fan-out fan-out))))
+         (setf (weights-value trainable-parameter)
+         (init-weights :shape s :mode (kernel-initializer layer) :fan-in fan-in :fan-out fan-out))))
 
-(defun make-conv2d-layer (model &key in-channels (out-channels 1) (kernel-size 3) (strides '(1 1)) (padding "valid") (stencil '()) (activation nil))
-  (let ((layer (make-instance 'conv2d-layer :in-channels in-channels
-                              :out-channels out-channels :kernel-size kernel-size
-                              :strides strides :padding padding :stencil stencil :activation activation)))
-    (push layer (model-layers model))
-    layer))
 
-(defmethod call ((layer conv2d-layer) input)
+
+(defmethod call ((layer conv2d-layer) input &rest args)
   (let* ((lower-bounds (make-array 2 :initial-element 0))
          (upper-bounds (make-array 2 :initial-element 0))
          (stencil (stencil layer))
@@ -112,6 +116,6 @@
 			   
 				(~ batch-size ~s (stride-shape interior-shape (strides layer)) ~ (out-channels layer)))
 				)))
-	;;(setq result (lazy #'max result result))
+	(setq result (lazy #'max result result))
       (if (layer-activation layer)(funcall (layer-activation layer) result)
           result))))

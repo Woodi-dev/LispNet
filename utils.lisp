@@ -1,26 +1,5 @@
 (in-package :common-lisp-user)
-
-(defpackage #:lispnet.utils
-  (:use
-   #:common-lisp
-   #:petalisp)
-  (:export
-   #:range-to-list
-   #:stride-range
-   #:stride-shape
-   #:pad
-   #:make-2d-kernel
-   #:argmax
-   #:lazy-multi-stack
-   #:minf
-   #:maxf
-   #:binary-decision
-   #:lazy-batch-argmax
-   #:lazy-allreduce-batchwise
-   #:print-list-horizontal
-   ))
-
-(in-package #:lispnet.utils)
+(in-package #:lispnet)
 
 (define-modify-macro minf (&rest numbers) min)
 (define-modify-macro maxf (&rest numbers) max)
@@ -39,7 +18,7 @@
 				for stride in strides collect
           (stride-range ra stride) )))
 
-(defun pad (array &key paddings (value 0f0))
+(defun pad (array &key paddings (value 0))
   (let ((ranges (shape-ranges (lazy-array-shape array)))
         (new-ranges '()))
     (assert (= (length paddings) (length ranges)))
@@ -104,6 +83,8 @@
 		 (format t "~S" x)
 		 (format t " ~S" x)))
     (format t ")"))
+	
+
 		 
    
 

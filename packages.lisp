@@ -3,9 +3,7 @@
 (defpackage #:lispnet
    (:use
    #:common-lisp
-   #:petalisp
-   #:lispnet.linear-algebra
-   #:lispnet.utils)
+   #:petalisp)
   (:export
 
 
@@ -15,21 +13,18 @@
    #:sigmoid
    #:conv-2d
 
+
    #:layer
    #:call
+   #:create-layer
    #:layer-weights
    #:layer-activation
    #:layer-compile
    #:dense-layer
-   #:make-dense-layer
-   #:make-flatten-layer
    #:flatten-layer
    #:conv2d-layer
-   #:make-conv2d-layer
    #:maxpool2d-layer
-   #:make-maxpool2d-layer
    #:transposed-conv2d-layer
-   #:make-transposed-conv2d-layer
 
 
    ;;model
@@ -43,7 +38,16 @@
    #:model-weights-total
    #:model-summary
    #:predict
-
+   #:*network-precision*
+   #:save-weights
+   #:load-weights
+   
+   ;;model-state
+   #:model-state
+   #:model-state-layer-pointer
+   #:model-state-running
+   #:model-state-weights-initialized
+   
    ;;optimizer
    #:optimizer
    #:sgd
@@ -57,6 +61,7 @@
    ;;loss
    #:mse
    #:mae
+   #:output-loss
    #:binary-cross-entropy
    #:categorial-cross-entropy
 
@@ -81,6 +86,21 @@
    #:trainable-parameter
    #:make-trainable-parameter
    #:trainable-parameter-p
+   #:weights
+   #:weights-value
    
-   #:train-mnist
+   ;;linear-algebra
+   #:transpose
+   #:matmul
+   #:l2norm
+   
+   ;;utils
+   #:make-2d-kernel
+   #:pad
+   #:stride-shape
+   #:stride-range
+   #:argmax
+   #:lazy-batch-argax
+   #:lazy-allreduce-batchwise
+   #:binary-decision
    ))

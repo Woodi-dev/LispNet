@@ -27,7 +27,7 @@
 	
 	(let* ((size (second (shape-dimensions (lazy-array-shape v))))
 		   (level  (floor (log (1- size) 2)))
-		   (smoother-rgbs (create-layer 'jacobi-layer model :level level :w 0.6 :model model))
+		   (smoother-rgbs (create-layer 'rgbs-layer model :level level :w 0.6 :model model))
 		   (smoother-jacobi (create-layer 'jacobi-layer model :level level :w 0.6 :model model)))
 		   ;;(when (= depth 0) (progn (setq restrict-c (create-layer 'att-restriction-layer model :filters 6 :model model ))));;:kernel-initializer #'glorot-uniform
 							 ;;(setq prolongate (create-layer 'att-prolongation-layer model  :filters 6 :model model))))
@@ -37,14 +37,14 @@
 						(setq v (call smoother-jacobi v f c)))
 						v)
 		    (let* ((residual (create-layer 'residual-layer model :level level))
-				;;	(restrict-c (create-layer 'att-restriction-layer model :filters 1 :model model ))			;;:kernel-initializer #'glorot-uniform
+					(restrict-c (create-layer 'att-restriction-layer model :filters 6 :model model ))			;;:kernel-initializer #'glorot-uniform
 			       (restrict (create-layer 'att-restriction-layer model :filters 1 :model model :trainable nil ));;:kernel-initializer #'glorot-uniform
 				;;  (restrict-normal (create-layer 'restriction-layer model :level level :trainable nil))
 			  	;;(prolongate-normal (create-layer 'prolongation-layer model :level (1- level) :restrict-layer restrict-normal))
 				  (prolongate (create-layer 'att-prolongation-layer model :filters 1  :model model :restrict-layer restrict))
-					;;(c2h (lazy #'+ 1 (lazy #'abs (call restrict-c (lazy #'- c 1) c)))))
+					(c2h (lazy #'+ 1 (lazy #'abs (call restrict-c (lazy #'- c 1) c)))))
 					
-					(c2h (coarse-func c)))
+					;;(c2h (coarse-func c)))
 				;; (c2h (lazy #'+ 1 (lazy #'abs (call restrict (lazy #'- c 1) c))))) ;; (coarse-func c))) ;; (call restrict c c) ;;(lazy #'+ 1d0 (lazy #'abs (call restrict c c)))
 				   (loop for i below (pre-smoothing model) do
 						(setq v (call smoother-rgbs v f c)))
@@ -71,7 +71,7 @@
 		  (residual (make-instance 'residual-layer :level level))
 		  (v1 (vcycle model v f c))
 		  (r-last (l2norm-error residual v f c)))
-		 (loop for i from 0 to 3 do
+		 (loop for i from 0 to -1 do
 			(setf (model-state-layer-pointer (model-state model)) (1- (length (model-layers model))))
 			(setf (model-state-weights-initialized (model-state model)) t)
 			(setq v1 (vcycle model v1 f c))

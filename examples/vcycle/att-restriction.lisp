@@ -33,7 +33,6 @@
 		 (batch-size (nth 0 (shape-dimensions shape)))
 		 (cmax (lazy-reduce #'max (lazy-reshape input (transform b y x c to c b y x))))
 		 (c (lazy-collapse (lazy-reshape cmax (transform b y x to b y x 0) shape)))
-		;;(c (lazy-allreduce #'max input))
 		(array (lazy #'exp (lazy #'- input c)))
 		(sums (lazy-reduce #'+  (lazy-reshape array (transform b y x c to c b y x)))))			
         (lazy #'/ array  (lazy-reshape sums (transform b y x to b y x 0) (~ batch-size ~ y ~ x ~ channels)))))
@@ -74,6 +73,7 @@
 				  (att-input (lazy #'*  attention-maps rh))
 				  (restrict-input (call (restrict-conv layer) att-input))
 				  (result (lazy-reshape restrict-input (transform b y x 0 to b y x))))
+
 
 				     (lazy-collapse (lazy-overwrite (lazy-reshape 0.0 (~ batch-size ~ target-size ~  target-size))  ;; (lazy-collapse(lazy-reshape input (~ batch-size ~ 0 source-size 2 ~ 0 source-size 2)))
 							(lazy-reshape result (~ batch-size ~ 1 (1- target-size) ~ 1 (1- target-size)))))))

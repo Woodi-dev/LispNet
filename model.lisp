@@ -102,7 +102,7 @@
     ;;Training
     (loop for offset below train-input-data-length by batch-size
                   for batch from 0 do
-              ;;    (format  t "Batch: ~S~%" batch)
+                 (format  t "Batch: ~S~%" batch)
 		
           (let* ((batch-range (range offset (min train-input-data-length (+ offset batch-size))))
                  (batch-data (lazy-slices train-input-data batch-range))
@@ -143,7 +143,7 @@
                                             (setf (nth i metrics-val) (list* metric (nth i metrics-val)))))))
 	
 
-	(save-weights model (format nil "weights-test/~a/" epoch) )	
+	;;(save-weights model (format nil "weights-test/~a/" epoch) )	
 	;;average errors and print to stdout
 	(let ((epoch-train-loss (/ (reduce #'+ batch-train-losses) (length batch-train-losses)))
 		  (epoch-val-loss (/ (reduce #'+ batch-val-losses) (length batch-val-losses)))
@@ -227,10 +227,10 @@
       (push input-parameter args)
       (push batch-input args)
       ;; Outputs.
-      ;;(loop for data in output-training-data
-       ;;     for output-parameter in output-parameters do
-        ;;      (push output-parameter args)
-         ;;     (push data args))
+      (loop for data in output-training-data
+            for output-parameter in output-parameters do
+              (push output-parameter args)
+              (push data args))
       ;; Parameters.
       (loop for parameter in model-weights do
         (push (weights parameter) args)
@@ -280,6 +280,7 @@
         ;; Inputs.
          (push input-parameter args)
          (push input args)
+		 ;;(print (array-shape input))
         ;; Trainable parameters.
                 (loop for trainable-parameter in (model-weights model) do
                         (push (weights trainable-parameter) args)

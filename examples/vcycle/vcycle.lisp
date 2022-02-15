@@ -46,7 +46,7 @@
 		 (r-new r0)
 		 (q 0.0)
 		 (i 1))
-		
+		 
 		
 		
 			(loop while (or (= i 1) (and (< r-new 1d60) (< i 50) (>= r-new r-old)) (and (< r-new r-old)  (>= (/ r-new r0) err) )) do ;; (< i 250)
@@ -73,7 +73,8 @@
 		  (gmg (make-instance 'vcycle-model :output #'forward-calc)))
 
 
-	
+
+
 	;; (print (compute (lazy-slice *test2-data* 8) 2))
 	;;(predict att-calc-model (compute (lazy-slices *train2-data* (range 8 225 9))))
 ;;	(predict vcycle-calc-model (compute (lazy-slices *train-data* (range 0 1))))
@@ -84,7 +85,7 @@
 	;;fit attention dmg
 
 
-	;;(fit att-train-model *train-data* (genLabels2 *train-data*) *val-data* (genLabels2 *val-data*) :epochs 250 :batch-size 1 );; :early-stop-delta 1000.0 :early-stop 10	
+	(fit att-train-model *train-data* (genLabels2 *train-data*) *val-data* (genLabels2 *val-data*) :epochs 250 :batch-size 10 );; :early-stop-delta 1000.0 :early-stop 10	
 	;;(save-weights att-train-model "weights-test/")
 
 

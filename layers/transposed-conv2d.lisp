@@ -42,7 +42,7 @@
     (when (= (length (stencil layer)) 0)
       (setf (stencil layer) (reverse(make-2d-kernel (list (kernel-size layer) (kernel-size layer)))))
       (setf n-weights (length (stencil layer))))
-    (setf (layer-weights layer) (list (make-trainable-parameter
+    (setf (layer-weights layer) (list (make-trainable-parameter (model layer)
                                        :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer))
 									   :trainable (trainable layer))))))
 
@@ -112,6 +112,7 @@
 	  (setq result (lazy-reshape result
 						(~ batch-size ~ (* (nth 1 input-dim) (nth 0 strides))
 						 ~ (* (nth 2 input-dim) (nth 1 strides)) ~ (out-channels layer)))))
-	  (setq result (lazy #'max result result))						 
+	  (setf result (lazy #'max result result))
+	  						 
       (if (layer-activation layer)(funcall (layer-activation layer) result)
           result))))

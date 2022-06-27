@@ -1,6 +1,6 @@
 (in-package #:lispnet)
 
-;; automatic differentiator cant resolve min function. -> max(-1 * f(x))
+
 (defun clip (x minx maxx)
   (lazy #'* -1.0 (lazy #'max (* -1 maxx) (lazy #'* -1.0 (lazy #'max minx x)))))
 
@@ -23,15 +23,15 @@
 
 (defun categorial-cross-entropy (y-true y-pred)
   (let* ((batch-size (first(shape-dimensions(lazy-array-shape y-true))))
-  (y-pred-stable (clip y-pred 0.0000001 0.9999999)))
+         (y-pred-stable (clip y-pred 0.0000001 0.9999999)))
     (lazy #'* -1.0 (lazy #'/  (lazy-allreduce #'+ (lazy #'* y-true (lazy #'log y-pred-stable)))                                                      
                          (coerce batch-size *network-precision*)))))
 						 
 
 (defun binary-accuracy (y-true y-pred)
   (let ((binary-pred (binary-decision y-pred 0.5)))
-     (lazy #'/ 
-	      (lazy-allreduce #'+ (lazy #'+ (lazy #'* (lazy #'- 1.0 binary-pred) (lazy #'- 1.0 y-true)) (lazy #'* binary-pred y-true)))
+    (lazy #'/ 
+	  (lazy-allreduce #'+ (lazy #'+ (lazy #'* (lazy #'- 1.0 binary-pred) (lazy #'- 1.0 y-true)) (lazy #'* binary-pred y-true)))
           (coerce (shape-size (lazy-array-shape y-true)) *network-precision* ))))
 
 (defun categorial-accuracy (y-true y-pred)

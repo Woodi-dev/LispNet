@@ -8,7 +8,9 @@
 
   :serial t
   :components
-  ((:file "vcycle/packages")
+  ((:file "mnist")
+  (:file "performance")
+  (:file "vcycle/packages")
   (:file "vcycle/restriction")
   (:file "vcycle/prolongation")
   (:file "vcycle/jacobi")

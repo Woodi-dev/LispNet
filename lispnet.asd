@@ -27,5 +27,4 @@
   (:file "layers/transposed-conv2d")
   (:file "layers/maxpool2d")
   (:file "loss")
-  (:file "optimizer")
-  (:file "examples/mnist")))
+  (:file "optimizer")))

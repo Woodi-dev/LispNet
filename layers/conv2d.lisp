@@ -34,7 +34,15 @@
    (kernel-initializer
 	:initarg :kernel-initializer
 	:accessor kernel-initializer
-	:initform #'glorot-uniform)))
+	:initform #'glorot-uniform)
+   (bias-initializer
+	:initarg :bias-initializer
+	:accessor bias-initializer
+	:initform #'zeros)
+   (use-bias
+	:initarg :use-bias
+	:accessor use-bias
+	:initform t)))
 
 
 
@@ -44,9 +52,12 @@
     (when (= (length (stencil layer)) 0)
       (setf (stencil layer) (make-2d-kernel (list (kernel-size layer) (kernel-size layer))))
       (setf n-weights (length (stencil layer))))
-    (setf (layer-weights layer) (list (make-trainable-parameter
+    (setf (layer-weights layer) (list (make-trainable-parameter (model layer)
                                        :shape (~ n-weights ~ (in-channels layer) ~ (out-channels layer)) 
-									   :trainable (trainable layer))))))
+									   :trainable (trainable layer))))
+	(when (use-bias layer) (setf (layer-weights layer) (append (layer-weights layer) (list (make-trainable-parameter (model layer)
+                                       :shape (~ (out-channels layer)) 
+									   :trainable (trainable layer))))))))
 
 (defmethod layer-compile ((layer conv2d-layer))
   (let* ((trainable-parameter (first (layer-weights layer)))
@@ -54,7 +65,11 @@
          (fan-in (* (nth 1 (shape-dimensions s)) (nth 2 (shape-dimensions s))))
          (fan-out (/ (* (nth 0 (shape-dimensions s)) (nth 1 (shape-dimensions s))) (reduce #'* (strides layer)))))
          (setf (weights-value trainable-parameter)
-         (init-weights :shape s :mode (kernel-initializer layer) :fan-in fan-in :fan-out fan-out))))
+         (init-weights :shape s :mode (kernel-initializer layer) :fan-in fan-in :fan-out fan-out))
+		 (when (use-bias layer)
+				(let ((bias (nth 1 (layer-weights layer))))
+				(setf (weights-value bias) 
+					(init-weights :shape (lazy-array-shape (weights bias)) :mode (bias-initializer layer)))))))
 
 
 
@@ -116,6 +131,7 @@
 			   
 				(~ batch-size ~s (stride-shape interior-shape (strides layer)) ~ (out-channels layer)))
 				)))
-	(setq result (lazy #'max result result))
+	  (when (use-bias layer) (setf result (lazy #'+ result (lazy-reshape (weights (nth 1 (layer-weights layer))) (transform f to 0 0 0 f)))))
+	  ;;(setf result (lazy #'max result result))
       (if (layer-activation layer)(funcall (layer-activation layer) result)
           result))))

@@ -342,9 +342,9 @@ def genJumpCountTest(batch_size, level):
         input.append(result)
     return np.stack(tuple(input),0)
 #generate train data
-#train = genTrain(400,5)
+#train = genTrain(450,5)
 #generate val data
-#val = genTrain(200,5)
+#val = genTrain(225,5)
 #np.save("train3",train)
 #np.save("val3",val)
 
@@ -367,7 +367,8 @@ def genJumpCountTest(batch_size, level):
 level=5
 batch_size=20
 #c= genTest(batch_size,level)
-c=np.load("test2.npy")
+c=np.load("test.npy")
+print(c.shape)
 print(c[8])
 plt.imshow(c[8,:,:,2])
 plt.show()
@@ -383,8 +384,8 @@ for j in range(batch_size):
         ax=fig.add_subplot(rows,cols, j + 1)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
-        im = plt.imshow(img,cmap='viridis',vmin=1,vmax=15)
-       # plt.colorbar(im,fraction=0.046, pad=0.04)
+        im = plt.imshow(img,cmap='viridis',vmin=1,vmax=11)
+        plt.colorbar(im,fraction=0.046, pad=0.04)
 
 
 plt.show()

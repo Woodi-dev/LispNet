@@ -68,8 +68,7 @@
                                        (~ batch-size ~s interior-shape ~ channels)
 									   )))
 				(~ batch-size ~s (stride-shape interior-shape strides) ~ channels))))) 
-	
-	
-		(setq result (lazy #'max result result))
+	   ;;(setf result (lazy #'max result result))
+
 		result
 		)))

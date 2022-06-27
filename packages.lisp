@@ -11,7 +11,6 @@
    #:softmax
    #:relu
    #:sigmoid
-   #:conv-2d
 
 
    #:layer
@@ -20,6 +19,7 @@
    #:layer-weights
    #:layer-activation
    #:layer-compile
+   #:activation-layer
    #:dense-layer
    #:flatten-layer
    #:conv2d-layer
@@ -42,11 +42,15 @@
    #:save-weights
    #:load-weights
    
-   ;;model-state
-   #:model-state
-   #:model-state-layer-pointer
-   #:model-state-running
-   #:model-state-weights-initialized
+   ;;model-backend
+   #:model-backend
+   #:parameter-pointer
+   #:parameters
+   #:layers
+   #:running
+   #:compiled
+   #:reset-pointer
+   #:reset-layers
    
    ;;optimizer
    #:optimizer
@@ -74,6 +78,7 @@
    #:glorot-uniform
    #:zeros
    #:ones
+   #:uniform
 
    ;;network
    #:train-test
